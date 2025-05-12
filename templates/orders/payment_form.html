@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Thêm thanh toán - Đơn hàng #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Thêm thanh toán - Đơn hàng #{{ order.order_number }}</h5>
+                        <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Quay lại
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold">Thông tin đơn hàng</h6>
+                                    <p class="mb-1"><strong>Khách hàng:</strong> {{ order.full_name }}</p>
+                                    <p class="mb-1"><strong>Điện thoại:</strong> {{ order.phone }}</p>
+                                    <p class="mb-1"><strong>Chi nhánh:</strong> {{ order.branch.name }}</p>
+                                    <p class="mb-1"><strong>Ngày tạo:</strong> {{ order.created_at|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold">Thông tin thanh toán</h6>
+                                    <p class="mb-1"><strong>Tổng tiền:</strong> {{ order.total|floatformat:0 }} đ</p>
+                                    <p class="mb-1"><strong>Đã thanh toán:</strong> {{ order.paid_amount|floatformat:0 }} đ</p>
+                                    <p class="mb-1"><strong>Còn lại:</strong> {{ order.balance_due|floatformat:0 }} đ</p>
+                                    <p class="mb-1"><strong>Trạng thái:</strong> 
+                                        {% if order.payment_status == 'pending' %}
+                                        <span class="badge bg-warning">Chờ thanh toán</span>
+                                        {% elif order.payment_status == 'partial' %}
+                                        <span class="badge bg-info">Thanh toán một phần</span>
+                                        {% elif order.payment_status == 'paid' %}
+                                        <span class="badge bg-success">Đã thanh toán</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.amount|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.payment_method|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.transaction_id|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.status|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                {{ form.note|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-outline-secondary me-md-2">Hủy</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-money-bill-wave me-2"></i>Xác nhận thanh toán
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Chỉnh sửa chi nhánh{% else %}Thêm chi nhánh mới{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="#">Chi nhánh</a></li>
+            <li class="breadcrumb-item active">{% if form.instance.pk %}Chỉnh sửa chi nhánh{% else %}Thêm chi nhánh mới{% endif %}</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4">{% if form.instance.pk %}Chỉnh sửa chi nhánh{% else %}Thêm chi nhánh mới{% endif %}</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Thông tin chi nhánh</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Tên chi nhánh</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.address.id_for_label }}" class="form-label">Địa chỉ</label>
+                            {{ form.address }}
+                            {% if form.address.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.address.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.city.id_for_label }}" class="form-label">Thành phố</label>
+                                {{ form.city }}
+                                {% if form.city.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.city.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.postal_code.id_for_label }}" class="form-label">Mã bưu chính</label>
+                                {{ form.postal_code }}
+                                {% if form.postal_code.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.postal_code.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">Số điện thoại</label>
+                                {{ form.phone }}
+                                {% if form.phone.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.phone.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.email.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.manager.id_for_label }}" class="form-label">Quản lý</label>
+                            {{ form.manager }}
+                            {% if form.manager.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.manager.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Chọn nhân viên sẽ được chỉ định làm quản lý chi nhánh</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="#" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Cập nhật{% else %}Tạo mới{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Hướng dẫn</h5>
+                </div>
+                <div class="card-body">
+                    <p>Thông tin cần thiết để thiết lập chi nhánh mới:</p>
+                    <ul>
+                        <li>Tên chi nhánh: Tên duy nhất để nhận diện chi nhánh</li>
+                        <li>Địa chỉ: Địa chỉ đầy đủ của chi nhánh</li>
+                        <li>Số điện thoại: Số liên lạc chính thức của chi nhánh</li>
+                        <li>Email: Địa chỉ email liên hệ của chi nhánh</li>
+                        <li>Quản lý: Nhân viên chịu trách nhiệm quản lý chi nhánh</li>
+                    </ul>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i> Sau khi tạo chi nhánh, bạn có thể thêm các nhân viên hoặc sản phẩm vào chi nhánh đó.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Thêm class Bootstrap cho các trường form
+        const formControls = [
+            'name', 'address', 'city', 'postal_code', 'phone', 'email'
+        ];
+        
+        formControls.forEach(field => {
+            const element = document.getElementById('id_' + field);
+            if (element) {
+                element.classList.add('form-control');
+            }
+        });
+        
+        const managerField = document.getElementById('id_manager');
+        if (managerField) {
+            managerField.classList.add('form-select');
+        }
+    });
+</script>
+{% endblock %} 

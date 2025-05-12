@@ -1,0 +1,299 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.urls import reverse_lazy, reverse
+from django.http import HttpResponse
+from django.utils import timezone
+from django.db.models import Q, Sum
+from django.core.paginator import Paginator
+
+from apps.orders.models import Order, OrderItem, Payment, Delivery
+from apps.orders.forms import OrderForm, OrderItemForm, PaymentForm, DeliveryForm
+from apps.products.models import Product, ProductVariant
+from apps.cart.models import Cart, CartItem
+from apps.inventory.models import Stock
+
+
+class OrderListView(LoginRequiredMixin, ListView):
+    model = Order
+    template_name = 'orders/order_list.html'
+    context_object_name = 'orders'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Tìm kiếm
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            queryset = queryset.filter(
+                Q(order_number__icontains=search_query) |
+                Q(full_name__icontains=search_query) |
+                Q(phone__icontains=search_query) |
+                Q(email__icontains=search_query)
+            )
+        
+        # Lọc theo trạng thái
+        status = self.request.GET.get('status', '')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Lọc theo phương thức thanh toán
+        payment_method = self.request.GET.get('payment_method', '')
+        if payment_method:
+            queryset = queryset.filter(payment_method=payment_method)
+        
+        # Lọc theo chi nhánh
+        branch_id = self.request.GET.get('branch', '')
+        if branch_id:
+            queryset = queryset.filter(branch_id=branch_id)
+        
+        # Lọc theo ngày
+        from_date = self.request.GET.get('from_date', '')
+        to_date = self.request.GET.get('to_date', '')
+        if from_date:
+            queryset = queryset.filter(created_at__date__gte=from_date)
+        if to_date:
+            queryset = queryset.filter(created_at__date__lte=to_date)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total_orders'] = self.get_queryset().count()
+        context['pending_orders'] = self.get_queryset().filter(status='pending').count()
+        context['processing_orders'] = self.get_queryset().filter(status='processing').count()
+        context['shipped_orders'] = self.get_queryset().filter(status='shipped').count()
+        context['delivered_orders'] = self.get_queryset().filter(status='delivered').count()
+        context['cancelled_orders'] = self.get_queryset().filter(status='cancelled').count()
+        return context
+
+
+class OrderDetailView(LoginRequiredMixin, DetailView):
+    model = Order
+    template_name = 'orders/order_detail.html'
+    context_object_name = 'order'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order_items'] = self.object.items.all()
+        context['payments'] = self.object.payments.all()
+        return context
+
+
+class OrderCreateView(LoginRequiredMixin, CreateView):
+    model = Order
+    form_class = OrderForm
+    template_name = 'orders/order_form.html'
+    success_url = reverse_lazy('orders:order_list')
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        
+        if not form.instance.branch:
+            form.instance.branch = self.request.user.branch
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'Đơn hàng #{self.object.order_number} đã được tạo thành công.')
+        
+        return response
+
+
+@login_required
+def create_order_from_cart(request):
+    """Tạo đơn hàng từ giỏ hàng"""
+    cart = Cart.objects.get_or_create(user=request.user)[0]
+    cart_items = CartItem.objects.filter(cart=cart)
+    
+    if not cart_items.exists():
+        messages.warning(request, 'Giỏ hàng của bạn đang trống.')
+        return redirect('cart:cart_view')
+    
+    if request.method == 'POST':
+        form = OrderForm(request.POST)
+        if form.is_valid():
+            order = form.save(commit=False)
+            order.customer = request.user
+            order.created_by = request.user
+            
+            if request.user.branch:
+                order.branch = request.user.branch
+            
+            # Tính toán giá trị đơn hàng
+            subtotal = sum(item.total_price for item in cart_items)
+            order.subtotal = subtotal
+            order.total = subtotal + order.shipping_fee + order.tax - order.discount
+            
+            order.save()
+            
+            # Chuyển các mặt hàng từ giỏ hàng sang đơn hàng
+            for cart_item in cart_items:
+                OrderItem.objects.create(
+                    order=order,
+                    product=cart_item.product,
+                    variant=cart_item.variant,
+                    price=cart_item.price,
+                    quantity=cart_item.quantity
+                )
+                
+                # Cập nhật tồn kho
+                if cart_item.variant:
+                    stock = Stock.objects.filter(
+                        product=cart_item.product,
+                        variant=cart_item.variant,
+                        branch=order.branch
+                    ).first()
+                else:
+                    stock = Stock.objects.filter(
+                        product=cart_item.product,
+                        variant=None,
+                        branch=order.branch
+                    ).first()
+                
+                if stock:
+                    stock.quantity -= cart_item.quantity
+                    stock.save()
+            
+            # Xóa giỏ hàng
+            cart_items.delete()
+            
+            messages.success(request, f'Đơn hàng #{order.order_number} đã được tạo thành công.')
+            return redirect('orders:order_detail', pk=order.pk)
+    else:
+        initial_data = {
+            'full_name': request.user.get_full_name(),
+            'email': request.user.email,
+            'phone': request.user.phone_number,
+            'address': request.user.address,
+        }
+        
+        # Thêm địa chỉ giao hàng nếu có
+        try:
+            customer_profile = request.user.customer_profile
+            default_address = customer_profile.shipping_addresses.filter(is_default=True).first()
+            if default_address:
+                initial_data.update({
+                    'shipping_address': default_address.address,
+                    'city': default_address.city,
+                    'district': default_address.district,
+                    'ward': default_address.ward,
+                })
+        except:
+            pass
+        
+        form = OrderForm(initial=initial_data)
+    
+    context = {
+        'form': form,
+        'cart_items': cart_items,
+        'subtotal': sum(item.total_price for item in cart_items)
+    }
+    return render(request, 'orders/checkout.html', context)
+
+
+@login_required
+def update_order_status(request, pk):
+    """Cập nhật trạng thái đơn hàng"""
+    order = get_object_or_404(Order, pk=pk)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status and new_status in dict(Order.STATUS_CHOICES):
+            old_status = order.status
+            order.status = new_status
+            
+            # Cập nhật thời gian theo trạng thái
+            if new_status == 'shipped' and not order.shipped_at:
+                order.shipped_at = timezone.now()
+            elif new_status == 'delivered' and not order.delivered_at:
+                order.delivered_at = timezone.now()
+            elif new_status == 'cancelled' and not order.cancelled_at:
+                order.cancelled_at = timezone.now()
+            
+            order.processed_by = request.user
+            order.save()
+            
+            messages.success(request, f'Trạng thái đơn hàng đã được cập nhật từ {dict(Order.STATUS_CHOICES)[old_status]} sang {dict(Order.STATUS_CHOICES)[new_status]}.')
+        else:
+            messages.error(request, 'Trạng thái không hợp lệ.')
+    
+    return redirect('orders:order_detail', pk=order.pk)
+
+
+class PaymentCreateView(LoginRequiredMixin, CreateView):
+    model = Payment
+    form_class = PaymentForm
+    template_name = 'orders/payment_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order_id = self.kwargs.get('order_id')
+        context['order'] = get_object_or_404(Order, id=order_id)
+        return context
+    
+    def form_valid(self, form):
+        order_id = self.kwargs.get('order_id')
+        order = get_object_or_404(Order, id=order_id)
+        
+        form.instance.order = order
+        form.instance.created_by = self.request.user
+        
+        response = super().form_valid(form)
+        
+        # Cập nhật thông tin thanh toán của đơn hàng
+        if form.instance.status == 'completed':
+            order.paid_amount += form.instance.amount
+            
+            # Cập nhật trạng thái thanh toán
+            if order.paid_amount >= order.total:
+                order.payment_status = 'paid'
+                order.paid_at = timezone.now()
+            elif order.paid_amount > 0:
+                order.payment_status = 'partial'
+            
+            order.save()
+        
+        messages.success(self.request, f'Thanh toán {form.instance.amount} đã được ghi nhận.')
+        
+        return response
+    
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('order_id')})
+
+
+class DeliveryUpdateView(LoginRequiredMixin, UpdateView):
+    model = Delivery
+    form_class = DeliveryForm
+    template_name = 'orders/delivery_form.html'
+    
+    def get_object(self, queryset=None):
+        order_id = self.kwargs.get('order_id')
+        order = get_object_or_404(Order, id=order_id)
+        
+        delivery, created = Delivery.objects.get_or_create(order=order)
+        return delivery
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order_id = self.kwargs.get('order_id')
+        context['order'] = get_object_or_404(Order, id=order_id)
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Thông tin giao hàng đã được cập nhật.')
+        
+        # Cập nhật trạng thái đơn hàng nếu đã giao hàng
+        if form.instance.status == 'delivered':
+            order = form.instance.order
+            if order.status != 'delivered':
+                order.status = 'delivered'
+                order.delivered_at = timezone.now()
+                order.save()
+        
+        return response
+    
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('order_id')}) 

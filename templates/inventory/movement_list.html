@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chuyển động kho{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb và actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Chuyển động kho</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Chuyển động kho</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'inventory:movement_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Tạo chuyển động kho
+            </a>
+        </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Bộ lọc</h5>
+            {% if request.GET.search or request.GET.branch or request.GET.movement_type or request.GET.from_date or request.GET.to_date %}
+            <a href="{% url 'inventory:movement_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Xóa bộ lọc
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <form method="get" action="" class="row g-3">
+                <!-- Tìm kiếm -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="search" class="form-label">Tìm kiếm</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               value="{{ search }}" placeholder="Tên sản phẩm, mã, tham chiếu...">
+                    </div>
+                </div>
+                
+                <!-- Chi nhánh -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="branch" class="form-label">Chi nhánh</label>
+                        <select class="form-select" id="branch" name="branch">
+                            <option value="">-- Tất cả chi nhánh --</option>
+                            {% for branch in branches %}
+                            <option value="{{ branch.id }}" {% if branch_id == branch.id|stringformat:"i" %}selected{% endif %}>
+                                {{ branch.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Loại chuyển động -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="movement_type" class="form-label">Loại chuyển động</label>
+                        <select class="form-select" id="movement_type" name="movement_type">
+                            <option value="">-- Tất cả loại --</option>
+                            {% for type_value, type_label in movement_types.items %}
+                            <option value="{{ type_value }}" {% if movement_type == type_value %}selected{% endif %}>
+                                {{ type_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Khoảng thời gian -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="from_date" class="form-label">Từ ngày</label>
+                        <input type="date" class="form-control" id="from_date" name="from_date" 
+                               value="{{ request.GET.from_date|default:'' }}">
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="to_date" class="form-label">Đến ngày</label>
+                        <input type="date" class="form-control" id="to_date" name="to_date" 
+                               value="{{ request.GET.to_date|default:'' }}">
+                    </div>
+                </div>
+                
+                <!-- Nút tìm kiếm -->
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Áp dụng
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Thống kê -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Tổng số chuyển động</h6>
+                            <h4>{{ total_movements }}</h4>
+                        </div>
+                        <div class="bg-light rounded p-3">
+                            <i class="fas fa-exchange-alt text-primary fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Nhập kho</h6>
+                            <h4>{{ movements.filter.movement_type:"in"|length }}</h4>
+                        </div>
+                        <div class="bg-light rounded p-3">
+                            <i class="fas fa-arrow-down text-success fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Xuất kho</h6>
+                            <h4>{{ movements.filter.movement_type:"out"|length }}</h4>
+                        </div>
+                        <div class="bg-light rounded p-3">
+                            <i class="fas fa-arrow-up text-danger fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách chuyển động -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="card-title mb-0">Danh sách chuyển động kho</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Sản phẩm</th>
+                            <th>Biến thể</th>
+                            <th>Chi nhánh</th>
+                            <th>Loại</th>
+                            <th>Số lượng</th>
+                            <th>Tham chiếu</th>
+                            <th>Người thực hiện</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movement in movements %}
+                        <tr>
+                            <td>{{ movement.performed_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if movement.product.get_primary_image %}
+                                    <div class="me-2" style="width: 40px; height: 40px;">
+                                        <img src="{{ movement.product.get_primary_image.image.url }}" alt="{{ movement.product.name }}" class="img-thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-bold">{{ movement.product.name }}</div>
+                                        <small class="text-muted">{{ movement.product.sku }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if movement.variant %}
+                                {{ movement.variant.name }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movement.branch.name }}</td>
+                            <td>
+                                {% if movement.movement_type == 'in' %}
+                                <span class="badge bg-success">Nhập kho</span>
+                                {% elif movement.movement_type == 'out' %}
+                                <span class="badge bg-danger">Xuất kho</span>
+                                {% elif movement.movement_type == 'adjustment' %}
+                                <span class="badge bg-warning">Điều chỉnh</span>
+                                {% elif movement.movement_type == 'transfer' %}
+                                <span class="badge bg-info">Chuyển kho</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movement.movement_type == 'in' or movement.movement_type == 'adjustment' and movement.quantity > 0 %}
+                                <span class="text-success">+{{ movement.quantity }}</span>
+                                {% else %}
+                                <span class="text-danger">{{ movement.quantity }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movement.reference }}</td>
+                            <td>{{ movement.performed_by.get_full_name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>Không có chuyển động kho nào.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Phân trang -->
+        {% if movements.has_other_pages %}
+        <div class="card-footer bg-white">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if movements.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if movement_type %}&movement_type={{ movement_type }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ movements.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if movement_type %}&movement_type={{ movement_type }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;&laquo;</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in movements.paginator.page_range %}
+                        {% if movements.number == num %}
+                        <li class="page-item active" aria-current="page">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if movement_type %}&movement_type={{ movement_type }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% elif num > movements.number|add:'-3' and num < movements.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if movement_type %}&movement_type={{ movement_type }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if movements.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ movements.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if movement_type %}&movement_type={{ movement_type }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ movements.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if movement_type %}&movement_type={{ movement_type }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb và tiêu đề -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">{{ tag.name }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'products:product_list' %}">Sản phẩm</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Tag: {{ tag.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sidebar lọc -->
+        <div class="col-lg-3 mb-4">
+            <!-- Lọc giá -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Lọc theo giá</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="" id="price-filter-form">
+                        <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                        
+                        <div class="mb-3">
+                            <label for="min_price" class="form-label">Giá tối thiểu</label>
+                            <input type="number" class="form-control" id="min_price" name="min_price" 
+                                   value="{{ request.GET.min_price|default:'' }}" placeholder="0">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="max_price" class="form-label">Giá tối đa</label>
+                            <input type="number" class="form-control" id="max_price" name="max_price" 
+                                   value="{{ request.GET.max_price|default:'' }}" placeholder="10000000">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">Áp dụng</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Danh sách sản phẩm -->
+        <div class="col-lg-9">
+            <!-- Sắp xếp và hiển thị -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} của {{ page_obj.paginator.count }} sản phẩm</span>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <label for="sort-select" class="me-2">Sắp xếp:</label>
+                            <select id="sort-select" class="form-select form-select-sm" style="width: auto;">
+                                <option value="" {% if not sort_by %}selected{% endif %}>Mặc định</option>
+                                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Tên A-Z</option>
+                                <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Giá tăng dần</option>
+                                <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Giá giảm dần</option>
+                                <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Mới nhất</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lưới sản phẩm -->
+            <div class="row">
+                {% for product in page_obj %}
+                <div class="col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100 shadow-sm product-card">
+                        <a href="{% url 'products:product_detail' product.slug %}" class="text-decoration-none">
+                            {% if product.get_primary_image %}
+                            <img src="{{ product.get_primary_image.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                            {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="{{ product.name }}">
+                            {% endif %}
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{% url 'products:product_detail' product.slug %}" class="text-decoration-none">{{ product.name }}</a>
+                            </h5>
+                            <p class="card-text text-primary fw-bold">{{ product.price|floatformat:0 }} VND</p>
+                            {% if product.old_price and product.old_price > product.price %}
+                            <p class="card-text">
+                                <span class="text-muted text-decoration-line-through">{{ product.old_price|floatformat:0 }} VND</span>
+                                <span class="badge bg-danger ms-2">Giảm {{ product.discount_percent|floatformat:0 }}%</span>
+                            </p>
+                            {% endif %}
+                            {% if product.category %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <a href="{% url 'products:category_detail' product.category.slug %}" class="text-decoration-none">{{ product.category.name }}</a>
+                                </small>
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-white border-top-0">
+                            <div class="d-grid">
+                                <a href="{% url 'products:product_detail' product.slug %}" class="btn btn-outline-primary">
+                                    Chi tiết
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        Không có sản phẩm nào với tag này.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Phân trang -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;&laquo;</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active" aria-current="page">
+                            <a class="page-link" href="?page={{ num }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Xử lý sắp xếp
+        const sortSelect = document.getElementById('sort-select');
+        sortSelect.addEventListener('change', function() {
+            const currentUrl = new URL(window.location.href);
+            const params = currentUrl.searchParams;
+            
+            if (this.value) {
+                params.set('sort', this.value);
+            } else {
+                params.delete('sort');
+            }
+            
+            // Reset về trang 1 khi thay đổi sắp xếp
+            params.delete('page');
+            
+            window.location.href = currentUrl.toString();
+        });
+    });
+</script>
+{% endblock %} 

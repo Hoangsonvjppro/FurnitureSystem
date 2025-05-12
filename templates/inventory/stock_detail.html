@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chi tiết tồn kho: {{ stock.product.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb và actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Chi tiết tồn kho</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'inventory:stock_list' %}">Tồn kho</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Chi tiết</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'inventory:stock_update' stock.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Chỉnh sửa
+            </a>
+            <a href="{% url 'inventory:movement_create' %}?product_id={{ stock.product.id }}{% if stock.variant %}&variant_id={{ stock.variant.id }}{% endif %}" class="btn btn-success">
+                <i class="fas fa-plus-circle me-2"></i>Tạo chuyển động kho
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Thông tin tồn kho -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Thông tin tồn kho</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h4>{{ stock.product.name }}</h4>
+                        {% if stock.variant %}
+                        <span class="badge bg-info">{{ stock.variant.name }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Mã sản phẩm:</span>
+                            <span class="fw-bold">{{ stock.product.sku }}</span>
+                        </li>
+                        {% if stock.variant %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Mã biến thể:</span>
+                            <span class="fw-bold">{{ stock.variant.sku }}</span>
+                        </li>
+                        {% endif %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Chi nhánh:</span>
+                            <span class="fw-bold">{{ stock.branch.name }}</span>
+                        </li>
+                    </ul>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="h5">Tồn kho hiện tại:</span>
+                        <span class="h5 fw-bold 
+                            {% if stock.quantity <= stock.min_quantity %}text-danger
+                            {% elif stock.quantity >= stock.max_quantity %}text-success
+                            {% else %}text-warning{% endif %}">
+                            {{ stock.quantity }}
+                        </span>
+                    </div>
+                    
+                    <div class="progress mb-3" style="height: 25px;">
+                        {% with percentage=stock.get_stock_level_percentage %}
+                        <div class="progress-bar 
+                            {% if stock.quantity <= stock.min_quantity %}bg-danger
+                            {% elif stock.quantity >= stock.max_quantity %}bg-success
+                            {% else %}bg-warning{% endif %}" 
+                            role="progressbar" style="width: {{ percentage }}%;" 
+                            aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ percentage }}%
+                        </div>
+                        {% endwith %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <small class="text-muted">Tồn kho tối thiểu</small>
+                                <h6>{{ stock.min_quantity }}</h6>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <small class="text-muted">Tồn kho tối đa</small>
+                                <h6>{{ stock.max_quantity }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Thông tin sản phẩm -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Thông tin sản phẩm</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Tên sản phẩm:</dt>
+                                <dd class="col-sm-8">{{ stock.product.name }}</dd>
+                                
+                                <dt class="col-sm-4">Mã sản phẩm:</dt>
+                                <dd class="col-sm-8">{{ stock.product.sku }}</dd>
+                                
+                                <dt class="col-sm-4">Danh mục:</dt>
+                                <dd class="col-sm-8">{{ stock.product.category.name }}</dd>
+                                
+                                <dt class="col-sm-4">Giá bán:</dt>
+                                <dd class="col-sm-8">{{ stock.product.price|floatformat:0 }} VND</dd>
+                            </dl>
+                        </div>
+                        
+                        {% if stock.variant %}
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Biến thể:</dt>
+                                <dd class="col-sm-8">{{ stock.variant.name }}</dd>
+                                
+                                <dt class="col-sm-4">Mã biến thể:</dt>
+                                <dd class="col-sm-8">{{ stock.variant.sku }}</dd>
+                                
+                                <dt class="col-sm-4">Giá biến thể:</dt>
+                                <dd class="col-sm-8">{{ stock.variant.price|floatformat:0 }} VND</dd>
+                            </dl>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Mô tả:</h6>
+                            <p>{{ stock.product.description|linebreaks }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lịch sử chuyển động kho -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Lịch sử chuyển động kho</h5>
+                    <a href="{% url 'inventory:movement_list' %}?product={{ stock.product.id }}{% if stock.variant %}&variant={{ stock.variant.id }}{% endif %}" class="btn btn-sm btn-outline-primary">
+                        Xem tất cả
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>Loại</th>
+                                    <th>Số lượng</th>
+                                    <th>Tham chiếu</th>
+                                    <th>Người thực hiện</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movement in movements %}
+                                <tr>
+                                    <td>{{ movement.performed_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if movement.movement_type == 'in' %}
+                                        <span class="badge bg-success">Nhập kho</span>
+                                        {% elif movement.movement_type == 'out' %}
+                                        <span class="badge bg-danger">Xuất kho</span>
+                                        {% elif movement.movement_type == 'adjustment' %}
+                                        <span class="badge bg-warning">Điều chỉnh</span>
+                                        {% elif movement.movement_type == 'transfer' %}
+                                        <span class="badge bg-info">Chuyển kho</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ movement.quantity }}</td>
+                                    <td>{{ movement.reference }}</td>
+                                    <td>{{ movement.performed_by.get_full_name }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Chưa có chuyển động kho nào.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

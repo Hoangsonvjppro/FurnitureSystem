@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Trang chủ | Hệ Thống Nội Thất{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="jumbotron text-center">
+        <h1 class="display-4">Hệ Thống Quản Lý Nội Thất</h1>
+        <p class="lead">Giải pháp quản lý toàn diện cho cửa hàng nội thất</p>
+        <hr class="my-4">
+        <p>Hệ thống được xây dựng để quản lý hiệu quả cửa hàng và chuỗi cửa hàng nội thất.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'admin:index' %}" role="button">Đăng nhập quản trị</a>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-box-open fa-3x mb-3"></i>
+                    <h5 class="card-title">Quản lý sản phẩm</h5>
+                    <p class="card-text">Quản lý danh mục và sản phẩm nội thất với đầy đủ thông tin và hình ảnh.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-warehouse fa-3x mb-3"></i>
+                    <h5 class="card-title">Quản lý kho</h5>
+                    <p class="card-text">Theo dõi tồn kho, nhập xuất hàng và quản lý kho theo thời gian thực.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                    <h5 class="card-title">Quản lý đơn hàng</h5>
+                    <p class="card-text">Tạo đơn hàng, theo dõi quy trình xử lý và quản lý thanh toán.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-store fa-3x mb-3"></i>
+                    <h5 class="card-title">Quản lý chi nhánh</h5>
+                    <p class="card-text">Quản lý nhiều chi nhánh với báo cáo hiệu suất và quản lý nhân viên.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-truck fa-3x mb-3"></i>
+                    <h5 class="card-title">Quản lý nhà cung cấp</h5>
+                    <p class="card-text">Theo dõi thông tin nhà cung cấp và lịch sử giao dịch.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x mb-3"></i>
+                    <h5 class="card-title">Báo cáo và thống kê</h5>
+                    <p class="card-text">Báo cáo doanh thu, tồn kho và phân tích xu hướng bán hàng.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

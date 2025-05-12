@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb và actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">{{ product.name }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'products:product_list' %}">Sản phẩm</a></li>
+                    {% if product.category %}
+                    <li class="breadcrumb-item"><a href="{% url 'products:category_detail' product.category.slug %}">{{ product.category.name }}</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Hình ảnh sản phẩm -->
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="product-images" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% if product.images.exists %}
+                                {% for image in product.images.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ image.image.url }}" class="d-block w-100 img-fluid" alt="{{ image.alt_text|default:product.name }}">
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="carousel-item active">
+                                    <img src="{% static 'images/placeholder.png' %}" class="d-block w-100 img-fluid" alt="{{ product.name }}">
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if product.images.count > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#product-images" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#product-images" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    {% if product.images.count > 1 %}
+                    <div class="d-flex justify-content-center mt-3">
+                        {% for image in product.images.all %}
+                        <div class="thumbnail mx-1" style="width: 60px; cursor: pointer;" data-bs-target="#product-images" data-bs-slide-to="{{ forloop.counter0 }}">
+                            <img src="{{ image.image.url }}" class="img-thumbnail" alt="{{ image.alt_text|default:'' }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Thông tin sản phẩm -->
+        <div class="col-md-7 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="h3 mb-3">{{ product.name }}</h2>
+                    
+                    <div class="mb-3">
+                        <span class="text-muted">Mã sản phẩm:</span> {{ product.sku }}
+                    </div>
+                    
+                    {% if product.category %}
+                    <div class="mb-3">
+                        <span class="text-muted">Danh mục:</span> 
+                        <a href="{% url 'products:category_detail' product.category.slug %}">{{ product.category.name }}</a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <span class="h4 text-primary">{{ product.price|floatformat:0 }} VND</span>
+                        {% if product.old_price and product.old_price > product.price %}
+                        <span class="text-muted text-decoration-line-through ms-2">{{ product.old_price|floatformat:0 }} VND</span>
+                        <span class="badge bg-danger ms-2">Giảm {{ product.discount_percent|floatformat:0 }}%</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ product.description|linebreaks }}
+                    </div>
+                    
+                    <!-- Chọn biến thể -->
+                    {% if product.variants.exists %}
+                    <div class="mb-4">
+                        <label class="form-label">Biến thể</label>
+                        <select class="form-select mb-3" id="variant-select">
+                            {% for variant in product.variants.all %}
+                            <option value="{{ variant.id }}" data-price="{{ variant.price }}" 
+                                    {% if variant.stock_quantity <= 0 %}disabled="disabled"{% endif %}>
+                                {{ variant.name }} - {{ variant.price|floatformat:0 }} VND
+                                {% if variant.stock_quantity <= 0 %} (Hết hàng){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Số lượng -->
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label">Số lượng</label>
+                        <div class="input-group" style="max-width: 150px;">
+                            <button class="btn btn-outline-secondary" type="button" id="decrease-quantity">-</button>
+                            <input type="number" class="form-control text-center" id="quantity" min="1" value="1">
+                            <button class="btn btn-outline-secondary" type="button" id="increase-quantity">+</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Nút thêm vào giỏ hàng -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" id="add-to-cart">
+                            <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ hàng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Thông tin chi tiết -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <ul class="nav nav-tabs card-header-tabs" id="product-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab" aria-controls="description" aria-selected="true">Thông tin chi tiết</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab" aria-controls="specifications" aria-selected="false">Thông số kỹ thuật</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="product-tab-content">
+                <div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
+                    {{ product.description|linebreaks }}
+                </div>
+                <div class="tab-pane fade" id="specifications" role="tabpanel" aria-labelledby="specifications-tab">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th scope="row">Mã sản phẩm</th>
+                                <td>{{ product.sku }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Kích thước</th>
+                                <td>{{ product.dimensions|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Chất liệu</th>
+                                <td>{{ product.material|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Xuất xứ</th>
+                                <td>{{ product.origin|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Bảo hành</th>
+                                <td>{{ product.warranty|default:"N/A" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sản phẩm liên quan -->
+    {% if related_products %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="card-title mb-0">Sản phẩm liên quan</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for related in related_products %}
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <div class="card h-100">
+                        <a href="{% url 'products:product_detail' related.slug %}">
+                            {% if related.get_primary_image %}
+                            <img src="{{ related.get_primary_image.image.url }}" class="card-img-top" alt="{{ related.name }}">
+                            {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="{{ related.name }}">
+                            {% endif %}
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{% url 'products:product_detail' related.slug %}" class="text-decoration-none">{{ related.name }}</a>
+                            </h5>
+                            <p class="card-text text-primary">{{ related.price|floatformat:0 }} VND</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.getElementById('quantity');
+        const decreaseButton = document.getElementById('decrease-quantity');
+        const increaseButton = document.getElementById('increase-quantity');
+        const addToCartButton = document.getElementById('add-to-cart');
+        const variantSelect = document.getElementById('variant-select');
+        
+        // Xử lý tăng giảm số lượng
+        decreaseButton.addEventListener('click', function() {
+            let currentValue = parseInt(quantityInput.value);
+            if (currentValue > 1) {
+                quantityInput.value = currentValue - 1;
+            }
+        });
+        
+        increaseButton.addEventListener('click', function() {
+            let currentValue = parseInt(quantityInput.value);
+            quantityInput.value = currentValue + 1;
+        });
+        
+        // Xử lý thêm vào giỏ hàng
+        addToCartButton.addEventListener('click', function() {
+            const quantity = parseInt(quantityInput.value);
+            const productId = {{ product.id }};
+            let variantId = null;
+            
+            if (variantSelect) {
+                variantId = variantSelect.value;
+            }
+            
+            // Gửi request thêm vào giỏ hàng
+            fetch('/cart/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    variant_id: variantId,
+                    quantity: quantity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hiển thị thông báo
+                    alert('Đã thêm sản phẩm vào giỏ hàng!');
+                    
+                    // Cập nhật số lượng sản phẩm trong giỏ hàng nếu có
+                    const cartCountElement = document.getElementById('cart-count');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = data.cart_count;
+                    }
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
+            });
+        });
+        
+        // Hàm lấy cookie (cho CSRF token)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %} 

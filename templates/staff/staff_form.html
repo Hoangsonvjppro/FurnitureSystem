@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Chỉnh sửa nhân viên{% else %}Thêm nhân viên mới{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if form.instance.pk %}Chỉnh sửa thông tin nhân viên{% else %}Thêm nhân viên mới{% endif %}
+            </h6>
+            <a href="{% if form.instance.pk %}{% url 'staff:detail' form.instance.pk %}{% else %}{% url 'staff:list' %}{% endif %}" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="border-bottom pb-2 mb-4">Thông tin cá nhân</h5>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Họ:</label>
+                            <div class="col-sm-9">
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.last_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Tên:</label>
+                            <div class="col-sm-9">
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.first_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Email:</label>
+                            <div class="col-sm-9">
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Mật khẩu:</label>
+                            <div class="col-sm-9">
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.password.errors }}</div>
+                                {% endif %}
+                                {% if form.instance.pk %}
+                                    <small class="form-text text-muted">Để trống nếu không muốn thay đổi mật khẩu.</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Số điện thoại:</label>
+                            <div class="col-sm-9">
+                                {{ form.phone }}
+                                {% if form.phone.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.phone.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Địa chỉ:</label>
+                            <div class="col-sm-9">
+                                {{ form.address }}
+                                {% if form.address.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.address.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Liên hệ khẩn cấp:</label>
+                            <div class="col-sm-9">
+                                {{ form.emergency_contact }}
+                                {% if form.emergency_contact.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.emergency_contact.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Ảnh đại diện:</label>
+                            <div class="col-sm-9">
+                                {% if form.instance.profile_image %}
+                                    <div class="mb-2">
+                                        <img src="{{ form.instance.profile_image.url }}" alt="Profile Image" style="max-width: 100px; max-height: 100px;">
+                                    </div>
+                                {% endif %}
+                                {{ form.profile_image }}
+                                {% if form.profile_image.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.profile_image.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="border-bottom pb-2 mb-4">Thông tin công việc</h5>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Mã nhân viên:</label>
+                            <div class="col-sm-9">
+                                {{ form.staff_id }}
+                                {% if form.staff_id.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.staff_id.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Vai trò:</label>
+                            <div class="col-sm-9">
+                                {{ form.role }}
+                                {% if form.role.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.role.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Chi nhánh:</label>
+                            <div class="col-sm-9">
+                                {{ form.branch }}
+                                {% if form.branch.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.branch.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Ngày vào làm:</label>
+                            <div class="col-sm-9">
+                                {{ form.date_hired }}
+                                {% if form.date_hired.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.date_hired.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Trạng thái:</label>
+                            <div class="col-sm-9">
+                                <div class="custom-control custom-switch">
+                                    {{ form.status }}
+                                    <label class="custom-control-label" for="{{ form.status.id_for_label }}">
+                                        <span id="status-text">Hoạt động</span>
+                                    </label>
+                                </div>
+                                {% if form.status.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.status.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group row mt-4">
+                    <div class="col-sm-12 text-center">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 
+                            {% if form.instance.pk %}Cập nhật{% else %}Thêm nhân viên{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cập nhật text của trạng thái
+        const statusCheckbox = document.getElementById('{{ form.status.id_for_label }}');
+        const statusText = document.getElementById('status-text');
+        
+        function updateStatusText() {
+            statusText.textContent = statusCheckbox.checked ? 'Hoạt động' : 'Ngưng hoạt động';
+        }
+        
+        // Khởi tạo
+        updateStatusText();
+        
+        // Cập nhật khi thay đổi
+        statusCheckbox.addEventListener('change', updateStatusText);
+    });
+</script>
+{% endblock %} 

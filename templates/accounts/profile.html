@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Thông tin tài khoản{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Thông tin tài khoản</h1>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Thông tin cá nhân</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white mx-auto mb-3" style="width: 150px; height: 150px; font-size: 3rem;">
+                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        </div>
+                        {% endif %}
+                        <h5 class="mb-0">{{ user.get_full_name }}</h5>
+                        <p class="text-muted">@{{ user.username }}</p>
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <a href="#personal-info" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                            <i class="fas fa-user me-2"></i> Thông tin cá nhân
+                        </a>
+                        <a href="#security" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-lock me-2"></i> Bảo mật
+                        </a>
+                        <a href="#orders" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-shopping-cart me-2"></i> Đơn hàng của tôi
+                        </a>
+                        <a href="#addresses" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-map-marker-alt me-2"></i> Sổ địa chỉ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="tab-content">
+                <!-- Thông tin cá nhân -->
+                <div class="tab-pane fade show active" id="personal-info">
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Thông tin cá nhân</h5>
+                            <button class="btn btn-sm btn-primary" id="edit-profile-btn">
+                                <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="profile-info">
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Họ và tên:</div>
+                                    <div class="col-md-8">{{ user.get_full_name }}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Email:</div>
+                                    <div class="col-md-8">{{ user.email }}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Số điện thoại:</div>
+                                    <div class="col-md-8">{{ user.phone|default:"Chưa cập nhật" }}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Ngày sinh:</div>
+                                    <div class="col-md-8">{{ user.birth_date|date:"d/m/Y"|default:"Chưa cập nhật" }}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Giới tính:</div>
+                                    <div class="col-md-8">
+                                        {% if user.gender == 'M' %}
+                                            Nam
+                                        {% elif user.gender == 'F' %}
+                                            Nữ
+                                        {% else %}
+                                            Chưa cập nhật
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Ngày tham gia:</div>
+                                    <div class="col-md-8">{{ user.date_joined|date:"d/m/Y" }}</div>
+                                </div>
+                            </div>
+
+                            <form id="profile-form" class="d-none">
+                                {% csrf_token %}
+                                <div class="row mb-3">
+                                    <label for="first_name" class="col-md-4 col-form-label">Họ:</label>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="last_name" class="col-md-4 col-form-label">Tên:</label>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="email" class="col-md-4 col-form-label">Email:</label>
+                                    <div class="col-md-8">
+                                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" readonly>
+                                        <div class="form-text">Email không thể thay đổi.</div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="phone" class="col-md-4 col-form-label">Số điện thoại:</label>
+                                    <div class="col-md-8">
+                                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone }}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="birth_date" class="col-md-4 col-form-label">Ngày sinh:</label>
+                                    <div class="col-md-8">
+                                        <input type="date" class="form-control" id="birth_date" name="birth_date" value="{{ user.birth_date|date:'Y-m-d' }}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="gender" class="col-md-4 col-form-label">Giới tính:</label>
+                                    <div class="col-md-8">
+                                        <select class="form-select" id="gender" name="gender">
+                                            <option value="">-- Chọn giới tính --</option>
+                                            <option value="M" {% if user.gender == 'M' %}selected{% endif %}>Nam</option>
+                                            <option value="F" {% if user.gender == 'F' %}selected{% endif %}>Nữ</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="avatar" class="col-md-4 col-form-label">Ảnh đại diện:</label>
+                                    <div class="col-md-8">
+                                        <input type="file" class="form-control" id="avatar" name="avatar">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" id="cancel-edit-btn">Hủy</button>
+                                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bảo mật -->
+                <div class="tab-pane fade" id="security">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Bảo mật tài khoản</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="current_password" class="form-label">Mật khẩu hiện tại</label>
+                                    <input type="password" class="form-control" id="current_password" name="current_password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="new_password" class="form-label">Mật khẩu mới</label>
+                                    <input type="password" class="form-control" id="new_password" name="new_password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">Xác nhận mật khẩu mới</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Đổi mật khẩu</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Đơn hàng -->
+                <div class="tab-pane fade" id="orders">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Đơn hàng của tôi</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th scope="col">Mã đơn hàng</th>
+                                            <th scope="col">Ngày đặt</th>
+                                            <th scope="col">Trạng thái</th>
+                                            <th scope="col">Tổng tiền</th>
+                                            <th scope="col">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in orders %}
+                                        <tr>
+                                            <td>{{ order.code }}</td>
+                                            <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ order.status_class }}">{{ order.status_display }}</span>
+                                            </td>
+                                            <td>{{ order.total|floatformat:0 }} ₫</td>
+                                            <td>
+                                                <a href="#" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                                    <h5 class="text-muted">Bạn chưa có đơn hàng nào</h5>
+                                                    <p class="text-muted">Hãy mua sắm để bắt đầu!</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Địa chỉ -->
+                <div class="tab-pane fade" id="addresses">
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Sổ địa chỉ</h5>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                                <i class="fas fa-plus-circle me-1"></i> Thêm địa chỉ mới
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if addresses %}
+                                <div class="list-group list-group-flush">
+                                    {% for address in addresses %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">{{ address.recipient_name }}</h6>
+                                                <p class="mb-1">{{ address.phone }}</p>
+                                                <p class="mb-1">{{ address.full_address }}</p>
+                                                {% if address.is_default %}
+                                                <span class="badge bg-primary">Mặc định</span>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    {% if not address.is_default %}
+                                                    <button class="btn btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Bạn chưa có địa chỉ nào</h5>
+                                    <p class="text-muted">Hãy thêm địa chỉ giao hàng!</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm địa chỉ mới -->
+<div class="modal fade" id="addAddressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm địa chỉ mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addressForm">
+                    <div class="mb-3">
+                        <label for="recipient_name" class="form-label">Họ tên người nhận</label>
+                        <input type="text" class="form-control" id="recipient_name" name="recipient_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Số điện thoại</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="province" class="form-label">Tỉnh/Thành phố</label>
+                        <select class="form-select" id="province" name="province" required>
+                            <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                            <!-- Danh sách tỉnh/thành phố -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="district" class="form-label">Quận/Huyện</label>
+                        <select class="form-select" id="district" name="district" required>
+                            <option value="">-- Chọn Quận/Huyện --</option>
+                            <!-- Danh sách quận/huyện -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ward" class="form-label">Phường/Xã</label>
+                        <select class="form-select" id="ward" name="ward" required>
+                            <option value="">-- Chọn Phường/Xã --</option>
+                            <!-- Danh sách phường/xã -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="street" class="form-label">Địa chỉ cụ thể</label>
+                        <textarea class="form-control" id="street" name="street" rows="2" required></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="is_default" name="is_default">
+                        <label class="form-check-label" for="is_default">
+                            Đặt làm địa chỉ mặc định
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="saveAddressBtn">Lưu địa chỉ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Xử lý chỉnh sửa hồ sơ
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const profileInfo = document.getElementById('profile-info');
+        const profileForm = document.getElementById('profile-form');
+        
+        editProfileBtn.addEventListener('click', function() {
+            profileInfo.classList.add('d-none');
+            profileForm.classList.remove('d-none');
+        });
+        
+        cancelEditBtn.addEventListener('click', function() {
+            profileInfo.classList.remove('d-none');
+            profileForm.classList.add('d-none');
+        });
+        
+        // Xử lý lưu địa chỉ mới
+        const saveAddressBtn = document.getElementById('saveAddressBtn');
+        if (saveAddressBtn) {
+            saveAddressBtn.addEventListener('click', function() {
+                // TODO: Xử lý lưu địa chỉ mới
+                alert('Đã thêm địa chỉ mới thành công!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addAddressModal'));
+                modal.hide();
+            });
+        }
+    });
+</script>
+{% endblock %} 

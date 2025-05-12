@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quản lý tồn kho{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Quản lý tồn kho</h1>
+        <div>
+            <a href="{% url 'inventory:movement_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Nhập/Xuất kho
+            </a>
+            <a href="{% url 'inventory:inventory_create' %}" class="btn btn-outline-primary">
+                <i class="fas fa-clipboard-check me-2"></i>Kiểm kê mới
+            </a>
+        </div>
+    </div>
+    
+    <!-- Thống kê -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-white">
+                <div class="card-body py-3">
+                    <h5 class="fw-bold text-dark mb-0">{{ total_items }}</h5>
+                    <p class="text-muted mb-0">Tổng mặt hàng</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-danger bg-opacity-10">
+                <div class="card-body py-3">
+                    <h5 class="fw-bold text-danger mb-0">{{ low_stock_count }}</h5>
+                    <p class="text-muted mb-0">Sắp hết hàng</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-primary bg-opacity-10">
+                <div class="card-body py-3">
+                    <h5 class="fw-bold text-primary mb-0"><a href="{% url 'inventory:movement_list' %}" class="text-decoration-none">Xem</a></h5>
+                    <p class="text-muted mb-0">Lịch sử nhập xuất</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success bg-opacity-10">
+                <div class="card-body py-3">
+                    <h5 class="fw-bold text-success mb-0"><a href="{% url 'inventory:inventory_list' %}" class="text-decoration-none">Xem</a></h5>
+                    <p class="text-muted mb-0">Đợt kiểm kê</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bộ lọc -->
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Tìm kiếm và lọc</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Tên sản phẩm, mã SKU..." value="{{ search }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="branch" class="form-select">
+                        <option value="">-- Chi nhánh --</option>
+                        {% for branch in branches %}
+                        <option value="{{ branch.id }}" {% if branch_id == branch.id|stringformat:"i" %}selected{% endif %}>{{ branch.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="stock_level" class="form-select">
+                        <option value="">-- Mức tồn kho --</option>
+                        <option value="low" {% if stock_level == 'low' %}selected{% endif %}>Sắp hết hàng</option>
+                        <option value="normal" {% if stock_level == 'normal' %}selected{% endif %}>Bình thường</option>
+                        <option value="high" {% if stock_level == 'high' %}selected{% endif %}>Dư thừa</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="sort_by" class="form-select">
+                        <option value="product__name" {% if request.GET.sort_by == 'product__name' %}selected{% endif %}>Sắp xếp theo tên</option>
+                        <option value="quantity" {% if request.GET.sort_by == 'quantity' %}selected{% endif %}>Sắp xếp theo số lượng</option>
+                        <option value="-updated_at" {% if request.GET.sort_by == '-updated_at' %}selected{% endif %}>Mới cập nhật</option>
+                    </select>
+                </div>
+                <div class="col-md-12 text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Lọc
+                    </button>
+                    <a href="{% url 'inventory:stock_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo me-2"></i>Đặt lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Danh sách tồn kho -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Chi nhánh</th>
+                            <th class="text-center">Tồn kho</th>
+                            <th class="text-center">Tối thiểu</th>
+                            <th class="text-center">Tối đa</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th>Cập nhật lần cuối</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock in stocks %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if stock.product.get_primary_image %}
+                                    <img src="{{ stock.product.get_primary_image.image.url }}" alt="{{ stock.product.name }}" class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="rounded me-3 bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-box text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'inventory:stock_detail' stock.id %}" class="text-decoration-none fw-bold">{{ stock.product.name }}</a>
+                                        {% if stock.variant %}
+                                        <small class="text-muted d-block">{{ stock.variant.name }}</small>
+                                        {% endif %}
+                                        <small class="text-muted d-block">SKU: {{ stock.product.sku }}{% if stock.variant %}-{{ stock.variant.sku }}{% endif %}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ stock.branch.name }}</td>
+                            <td class="text-center">{{ stock.quantity }}</td>
+                            <td class="text-center">{{ stock.min_quantity }}</td>
+                            <td class="text-center">{{ stock.max_quantity }}</td>
+                            <td class="text-center">
+                                {% if stock.is_low_stock %}
+                                <span class="badge bg-danger">Sắp hết hàng</span>
+                                {% elif stock.is_over_stock %}
+                                <span class="badge bg-warning">Dư thừa</span>
+                                {% else %}
+                                <span class="badge bg-success">Bình thường</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ stock.updated_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'inventory:stock_detail' stock.id %}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:movement_create' %}?product_id={{ stock.product.id }}{% if stock.variant %}&variant_id={{ stock.variant.id }}{% endif %}" class="btn btn-sm btn-outline-success" title="Nhập kho">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:stock_update' stock.id %}" class="btn btn-sm btn-outline-secondary" title="Cấu hình">
+                                        <i class="fas fa-cog"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <p class="text-muted mb-0">Không tìm thấy mặt hàng nào trong kho</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Phân trang -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

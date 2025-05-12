@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Danh sách nhân viên{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Quản lý nhân viên</h1>
+        <a href="#" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i> Thêm nhân viên mới
+        </a>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Bộ lọc tìm kiếm</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Tên, email, số điện thoại...">
+                </div>
+                <div class="col-md-4">
+                    <label for="branch" class="form-label">Chi nhánh</label>
+                    <select class="form-select" id="branch" name="branch">
+                        <option value="">Tất cả chi nhánh</option>
+                        {% for branch in branches %}
+                            <option value="{{ branch.id }}">{{ branch.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="role" class="form-label">Vai trò</label>
+                    <select class="form-select" id="role" name="role">
+                        <option value="">Tất cả vai trò</option>
+                        <option value="admin">Quản trị viên</option>
+                        <option value="manager">Quản lý</option>
+                        <option value="staff">Nhân viên</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Tìm kiếm
+                    </button>
+                    <a href="#" class="btn btn-secondary">
+                        <i class="fas fa-sync me-1"></i> Đặt lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách nhân viên -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Danh sách nhân viên</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Họ tên</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Số điện thoại</th>
+                            <th scope="col">Chi nhánh</th>
+                            <th scope="col">Vai trò</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_list %}
+                        <tr>
+                            <td>{{ staff.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar me-2">
+                                        {% if staff.avatar %}
+                                        <img src="{{ staff.avatar.url }}" alt="{{ staff.get_full_name }}" class="rounded-circle" width="40" height="40">
+                                        {% else %}
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px;">
+                                            {{ staff.first_name|first|upper }}{{ staff.last_name|first|upper }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ staff.get_full_name }}</div>
+                                        <small class="text-muted">@{{ staff.username }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ staff.email }}</td>
+                            <td>{{ staff.phone|default:"-" }}</td>
+                            <td>{{ staff.branch.name|default:"-" }}</td>
+                            <td>
+                                {% if staff.is_superuser %}
+                                <span class="badge bg-danger">Quản trị viên</span>
+                                {% elif staff.is_staff %}
+                                <span class="badge bg-warning text-dark">Quản lý</span>
+                                {% else %}
+                                <span class="badge bg-primary">Nhân viên</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if staff.is_active %}
+                                <span class="badge bg-success">Hoạt động</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Không hoạt động</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="#" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Không tìm thấy nhân viên nào</h5>
+                                    <p class="text-muted">Hãy thử thay đổi bộ lọc hoặc thêm nhân viên mới</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

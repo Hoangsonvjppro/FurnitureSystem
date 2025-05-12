@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}Chỉnh sửa nhà cung cấp{% else %}Thêm nhà cung cấp mới{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb và actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">
+                {% if form.instance.pk %}Chỉnh sửa nhà cung cấp{% else %}Thêm nhà cung cấp mới{% endif %}
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'suppliers:supplier_list' %}">Nhà cung cấp</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {% if form.instance.pk %}Chỉnh sửa{% else %}Thêm mới{% endif %}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        {% if form.instance.pk %}
+                            Chỉnh sửa thông tin nhà cung cấp
+                        {% else %}
+                            Thông tin nhà cung cấp mới
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Error handling -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <!-- Cột trái -->
+                            <div class="col-md-6">
+                                <!-- Tên nhà cung cấp -->
+                                <div class="mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                                        {{ form.name.label }}
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.name|add_class:"form-control" }}
+                                    {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Mã nhà cung cấp -->
+                                <div class="mb-3">
+                                    <label for="{{ form.code.id_for_label }}" class="form-label">
+                                        {{ form.code.label }}
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.code|add_class:"form-control" }}
+                                    {% if form.code.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.code.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Mã duy nhất của nhà cung cấp (VD: SUP001, ABC123)
+                                    </div>
+                                </div>
+                                
+                                <!-- Người liên hệ -->
+                                <div class="mb-3">
+                                    <label for="{{ form.contact_person.id_for_label }}" class="form-label">
+                                        {{ form.contact_person.label }}
+                                    </label>
+                                    {{ form.contact_person|add_class:"form-control" }}
+                                    {% if form.contact_person.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.contact_person.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Số điện thoại -->
+                                <div class="mb-3">
+                                    <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                        {{ form.phone.label }}
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.phone|add_class:"form-control" }}
+                                    {% if form.phone.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.phone.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Email -->
+                                <div class="mb-3">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">
+                                        {{ form.email.label }}
+                                    </label>
+                                    {{ form.email|add_class:"form-control" }}
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.email.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Cột phải -->
+                            <div class="col-md-6">
+                                <!-- Địa chỉ -->
+                                <div class="mb-3">
+                                    <label for="{{ form.address.id_for_label }}" class="form-label">
+                                        {{ form.address.label }}
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.address|add_class:"form-control" }}
+                                    {% if form.address.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.address.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Mã số thuế -->
+                                <div class="mb-3">
+                                    <label for="{{ form.tax_code.id_for_label }}" class="form-label">
+                                        {{ form.tax_code.label }}
+                                    </label>
+                                    {{ form.tax_code|add_class:"form-control" }}
+                                    {% if form.tax_code.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.tax_code.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Website -->
+                                <div class="mb-3">
+                                    <label for="{{ form.website.id_for_label }}" class="form-label">
+                                        {{ form.website.label }}
+                                    </label>
+                                    {{ form.website|add_class:"form-control" }}
+                                    {% if form.website.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.website.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Rating -->
+                                <div class="mb-3">
+                                    <label for="{{ form.rating.id_for_label }}" class="form-label">
+                                        {{ form.rating.label }}
+                                    </label>
+                                    {{ form.rating|add_class:"form-control" }}
+                                    {% if form.rating.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.rating.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Đánh giá từ 1-5 sao
+                                    </div>
+                                </div>
+                                
+                                <!-- Kích hoạt -->
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            {{ form.is_active.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.is_active.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mô tả -->
+                        <div class="mb-4">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description|add_class:"form-control" }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Nút submit -->
+                        <div class="d-flex justify-content-end border-top pt-3">
+                            <a href="{% url 'suppliers:supplier_list' %}" class="btn btn-outline-secondary me-2">
+                                Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if form.instance.pk %}Cập nhật{% else %}Tạo nhà cung cấp{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Hướng dẫn</h5>
+                </div>
+                <div class="card-body">
+                    <p>Các thông tin quan trọng cần nhập đầy đủ:</p>
+                    <ul>
+                        <li>Tên nhà cung cấp</li>
+                        <li>Mã nhà cung cấp (duy nhất)</li>
+                        <li>Số điện thoại</li>
+                        <li>Địa chỉ</li>
+                    </ul>
+                    <p>Các thông tin khác có thể bổ sung sau.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Chuyển đổi mã nhà cung cấp thành chữ hoa
+    document.addEventListener('DOMContentLoaded', function() {
+        const codeInput = document.getElementById('{{ form.code.id_for_label }}');
+        if (codeInput) {
+            codeInput.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} | Hệ Thống Nội Thất{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Sản phẩm nội thất</h1>
+
+    <div class="row">
+        <!-- Filters Sidebar -->
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Lọc sản phẩm</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'products:product_list' %}">
+                        <h6 class="mb-3">Danh mục</h6>
+                        <div class="mb-3">
+                            <select name="category" class="form-select">
+                                <option value="">Tất cả danh mục</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ cat.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <h6 class="mb-3">Giá</h6>
+                        <div class="mb-3">
+                            <label for="min_price" class="form-label">Giá thấp nhất</label>
+                            <input type="number" name="min_price" id="min_price" class="form-control" value="{{ min_price }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="max_price" class="form-label">Giá cao nhất</label>
+                            <input type="number" name="max_price" id="max_price" class="form-control" value="{{ max_price }}">
+                        </div>
+
+                        <h6 class="mb-3">Sắp xếp</h6>
+                        <div class="mb-3">
+                            <select name="sort" class="form-select">
+                                <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Mới nhất</option>
+                                <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Giá tăng dần</option>
+                                <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Giá giảm dần</option>
+                                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Tên A-Z</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Áp dụng</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <p>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} của {{ page_obj.paginator.count }} sản phẩm</p>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary active">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            {% if page_obj %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for product in page_obj %}
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        {% if product.image %}
+                        <a href="{{ product.get_absolute_url }}">
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        </a>
+                        {% else %}
+                        <a href="{{ product.get_absolute_url }}">
+                            <img src="{% static 'img/product-placeholder.png' %}" class="card-img-top" alt="{{ product.name }}">
+                        </a>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name }}</a>
+                            </h5>
+                            <p class="card-text">{{ product.description|truncatechars:100|safe }}</p>
+                        </div>
+                        
+                        <div class="card-footer">
+                            {% if product.sale_price %}
+                            <div class="product-price">
+                                <span class="text-decoration-line-through text-muted">{{ product.price|floatformat:0 }}đ</span>
+                                <span class="text-danger ms-2">{{ product.sale_price|floatformat:0 }}đ</span>
+                                <span class="badge bg-danger ms-2">-{{ product.discount_percentage }}%</span>
+                            </div>
+                            {% else %}
+                            <div class="product-price">{{ product.price|floatformat:0 }}đ</div>
+                            {% endif %}
+                            
+                            <div class="d-grid gap-2 mt-3">
+                                <a href="#" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-shopping-cart me-1"></i> Thêm vào giỏ hàng
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&laquo; Đầu</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Trước</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">&laquo; Đầu</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">Trước</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <a class="page-link" href="#">{{ num }}</a>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Tiếp</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Cuối &raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">Tiếp</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">Cuối &raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">Không tìm thấy sản phẩm nào phù hợp với tiêu chí tìm kiếm.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
