@@ -56,6 +56,7 @@
 
         <!-- Products Grid -->
         <div class="col-md-9">
+            {% if page_obj and page_obj.paginator.count > 0 %}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <p>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} của {{ page_obj.paginator.count }} sản phẩm</p>
                 <div class="btn-group">
@@ -68,7 +69,6 @@
                 </div>
             </div>
 
-            {% if page_obj %}
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {% for product in page_obj %}
                 <div class="col">
@@ -164,8 +164,10 @@
             {% endif %}
             
             {% else %}
-            <div class="alert alert-info">
-                <p class="mb-0">Không tìm thấy sản phẩm nào phù hợp với tiêu chí tìm kiếm.</p>
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-box-open fa-4x mb-3"></i>
+                <h4>{{ empty_message|default:"Không tìm thấy sản phẩm nào phù hợp với tiêu chí tìm kiếm." }}</h4>
+                <p class="mt-3">Hãy thử lại với bộ lọc khác hoặc quay lại sau khi chúng tôi cập nhật thêm sản phẩm mới.</p>
             </div>
             {% endif %}
         </div>

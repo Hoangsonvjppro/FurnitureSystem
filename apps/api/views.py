@@ -2,7 +2,7 @@ from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from apps.products.models import Product, ProductCategory, ProductVariant
+from apps.products.models import Product, Category, ProductVariant
 from apps.branches.models import Branch
 from apps.accounts.models import User, CustomerProfile
 from apps.orders.models import Order
@@ -52,7 +52,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """API endpoint cho danh mục sản phẩm"""
-    queryset = ProductCategory.objects.all()
+    queryset = Category.objects.all()
     serializer_class = ProductCategorySerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.products.models import Product, ProductCategory, ProductVariant, ProductImage
+from apps.products.models import Product, Category, ProductVariant, ProductImage
 from apps.branches.models import Branch
 from apps.accounts.models import User, CustomerProfile, ShippingAddress
 from apps.orders.models import Order, OrderItem, Payment, Delivery
@@ -39,7 +39,7 @@ class BranchSerializer(serializers.ModelSerializer):
 
 class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProductCategory
+        model = Category
         fields = ['id', 'name', 'parent', 'description', 'is_active']
 
 

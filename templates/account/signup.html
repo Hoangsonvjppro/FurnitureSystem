@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load account socialaccount %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Đăng ký" %}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="auth-form">
+    <img src="/static/img/logo.png" alt="Logo" class="logo-placeholder">
+    <h2>{% trans "Đăng ký tài khoản" %}</h2>
+
+    <form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
+      {% csrf_token %}
+      {{ form|crispy }}
+      {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+      {% endif %}
+      
+      <button class="btn btn-primary" type="submit">{% trans "Đăng ký" %}</button>
+    </form>
+
+    <div class="auth-links mt-3">
+      <p>
+        {% trans "Đã có tài khoản?" %} <a href="{{ login_url }}">{% trans "Đăng nhập" %}</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %} 
