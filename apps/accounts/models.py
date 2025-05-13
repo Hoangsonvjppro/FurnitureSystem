@@ -56,9 +56,9 @@ class User(AbstractUser):
     def get_dashboard_url(self):
         """Trả về URL dashboard tương ứng với vai trò của user"""
         if self.is_admin:
-            return '/admin/'
+            return '/admin-panel/'
         if self.is_manager:
-            return '/manager/'
+            return '/branch-manager/'
         if self.is_sales_staff:
             return '/sales/'
         if self.is_inventory_staff:

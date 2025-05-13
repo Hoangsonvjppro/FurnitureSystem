@@ -29,7 +29,7 @@ def sales_dashboard(request):
     # Get today's orders count and value
     today_orders = Order.objects.filter(
         created_at__date=today,
-        processed_by=request.user
+        sales_staff=request.user
     )
     today_orders_count = today_orders.count()
     today_orders_value = today_orders.aggregate(total=Sum('total'))['total'] or 0
@@ -47,7 +47,7 @@ def sales_dashboard(request):
     
     # Get recent orders
     recent_orders = Order.objects.filter(
-        processed_by=request.user
+        sales_staff=request.user
     ).order_by('-created_at')[:5]
     
     # Get top selling products
@@ -69,7 +69,7 @@ def sales_dashboard(request):
         
         daily_sales = Order.objects.filter(
             created_at__date=date,
-            processed_by=request.user
+            sales_staff=request.user
         ).aggregate(total=Sum('total'))['total'] or 0
         
         sales_data.insert(0, daily_sales)
@@ -77,7 +77,7 @@ def sales_dashboard(request):
     # New customers in last 7 days
     new_customers_count = Order.objects.filter(
         created_at__date__gte=seven_days_ago,
-        processed_by=request.user
+        sales_staff=request.user
     ).values('customer').distinct().count()
     
     context = {
@@ -100,7 +100,7 @@ def sales_dashboard(request):
 @sales_staff_required
 def sales_order_list(request):
     """View to display a list of orders for sales staff"""
-    orders = Order.objects.filter(processed_by=request.user).order_by('-created_at')
+    orders = Order.objects.filter(sales_staff=request.user).order_by('-created_at')
     
     # Handle search and filtering
     search_query = request.GET.get('search', '')
@@ -145,7 +145,7 @@ def sales_order_detail(request, order_id):
 def sales_order_create(request):
     """View đã bị vô hiệu hóa - Đơn hàng chỉ được tạo bởi khách hàng"""
     messages.error(request, "Không thể tạo đơn hàng mới. Đơn hàng chỉ được tạo bởi khách hàng khi thanh toán giỏ hàng.")
-    return redirect('staff:sales_orders')
+    return redirect('staff:sales_order_list')
 
 
 @login_required
@@ -170,7 +170,7 @@ def sales_order_update(request, order_id):
             elif new_status == 'CANCELLED' and not order.cancelled_at:
                 order.cancelled_at = timezone.now()
             
-            order.processed_by = request.user
+            order.sales_staff = request.user
             order.save()
             
             messages.success(request, f'Trạng thái đơn hàng đã được cập nhật từ {dict(Order.STATUS_CHOICES)[old_status]} sang {dict(Order.STATUS_CHOICES)[new_status]}.')
@@ -185,7 +185,7 @@ def sales_order_update(request, order_id):
 def sales_customer_list(request):
     """View to display a list of customers for sales staff"""
     # You may need to adjust this query based on your model relationships
-    customers = Order.objects.filter(processed_by=request.user).values('customer').distinct()
+    customers = Order.objects.filter(sales_staff=request.user).values('customer').distinct()
     
     context = {
         'customers': customers,
@@ -202,7 +202,7 @@ def sales_customer_detail(request, customer_id):
     customer = get_object_or_404(User, id=customer_id)  # Replace User with your Customer model
     
     # Get customer's orders processed by the current staff
-    customer_orders = Order.objects.filter(customer=customer, processed_by=request.user)
+    customer_orders = Order.objects.filter(customer=customer, sales_staff=request.user)
     
     context = {
         'customer': customer,
@@ -293,9 +293,9 @@ def sales_daily_report(request):
     # Get daily sales data
     daily_sales = Order.objects.filter(
         created_at__date=today,
-        processed_by=request.user
+        sales_staff=request.user
     ).aggregate(
-        total_sales=Sum('total_amount'),
+        total_sales=Sum('total'),
         total_orders=Count('id')
     )
     
@@ -318,9 +318,9 @@ def sales_monthly_report(request):
     monthly_sales = Order.objects.filter(
         created_at__date__gte=first_day,
         created_at__date__lte=today,
-        processed_by=request.user
+        sales_staff=request.user
     ).aggregate(
-        total_sales=Sum('total_amount'),
+        total_sales=Sum('total'),
         total_orders=Count('id')
     )
     
@@ -364,8 +364,13 @@ def sales_profile_update(request):
 
 
 class ManagerAccessMixin(UserPassesTestMixin):
+    """Mixin để kiểm tra quyền truy cập của quản lý"""
     def test_func(self):
-        return self.request.user.is_superuser or hasattr(self.request.user, 'profile') and self.request.user.profile.is_manager
+        return self.request.user.is_superuser or self.request.user.role == 'MANAGER'
+        
+    def handle_no_permission(self):
+        messages.error(self.request, "Bạn không có quyền truy cập khu vực này.")
+        return redirect('products:home')
 
 
 class StaffListView(LoginRequiredMixin, ManagerAccessMixin, ListView):
@@ -429,15 +434,15 @@ class StaffDetailView(LoginRequiredMixin, ManagerAccessMixin, DetailView):
         ).order_by('date', 'start_time')
         
         # Đơn hàng gần đây
-        context['recent_orders'] = Order.objects.filter(processed_by=staff.user).order_by('-created_at')[:10]
+        context['recent_orders'] = Order.objects.filter(sales_staff=staff.user).order_by('-created_at')[:10]
         
         # Tổng doanh số
-        context['total_sales'] = Order.objects.filter(processed_by=staff.user).aggregate(
-            total=Sum('total_amount')
+        context['total_sales'] = Order.objects.filter(sales_staff=staff.user).aggregate(
+            total=Sum('total')
         )['total'] or 0
         
         # Tổng đơn hàng
-        context['total_orders'] = Order.objects.filter(processed_by=staff.user).count()
+        context['total_orders'] = Order.objects.filter(sales_staff=staff.user).count()
         
         return context
 

@@ -21,13 +21,13 @@ def inventory_dashboard(request):
     
     # Get counts for today's stock movements
     stock_ins_today = StockMovement.objects.filter(
-        performed_at__date=today,
-        movement_type='in'
+        created_at__date=today,
+        movement_type='IN'
     ).count()
     
     stock_outs_today = StockMovement.objects.filter(
-        performed_at__date=today,
-        movement_type='out'
+        created_at__date=today,
+        movement_type='OUT'
     ).count()
     
     # Total products count
@@ -35,7 +35,7 @@ def inventory_dashboard(request):
     
     # Low stock items
     low_stock_count = Stock.objects.filter(quantity__lte=F('min_quantity')).count()
-    low_stock_products = Stock.objects.filter(quantity__lte=F('min_quantity')).select_related('product', 'variant', 'category')[:10]
+    low_stock_products = Stock.objects.filter(quantity__lte=F('min_quantity')).select_related('product', 'variant', 'branch')[:10]
     
     # Pending orders that need to be fulfilled
     # Adjust this query based on your actual model relationships
@@ -51,20 +51,20 @@ def inventory_dashboard(request):
     category_counts = [item['total_quantity'] for item in category_data]
     
     # Recent activities (stock movements)
-    recent_activities = StockMovement.objects.all().order_by('-performed_at')[:10]
+    recent_activities = StockMovement.objects.all().order_by('-created_at')[:10]
     
     for activity in recent_activities:
         # Assign icon and color based on movement type
-        if activity.movement_type == 'in':
+        if activity.movement_type == 'IN':
             activity.icon = 'fa-truck-loading'
             activity.type_color = 'success'
-        elif activity.movement_type == 'out':
+        elif activity.movement_type == 'OUT':
             activity.icon = 'fa-shipping-fast'
             activity.type_color = 'primary'
-        elif activity.movement_type == 'transfer':
+        elif activity.movement_type == 'TRANSFER':
             activity.icon = 'fa-exchange-alt'
             activity.type_color = 'info'
-        elif activity.movement_type == 'adjustment':
+        elif activity.movement_type == 'ADJUSTMENT':
             activity.icon = 'fa-clipboard-check'
             activity.type_color = 'warning'
         else:
@@ -83,7 +83,7 @@ def inventory_dashboard(request):
         'category_counts': category_counts,
     }
     
-    return render(request, 'inventory/inventory_dashboard.html', context)
+    return render(request, 'inventory/dashboard.html', context)
 
 
 @login_required
@@ -116,7 +116,7 @@ def stock_detail(request, stock_id):
     movements = StockMovement.objects.filter(
         product=stock.product,
         branch=stock.branch
-    ).order_by('-performed_at')[:20]
+    ).order_by('-created_at')[:20]
     
     context = {
         'stock': stock,
@@ -163,7 +163,7 @@ def low_stock(request):
 @login_required
 def receiving_list(request):
     """View for listing receiving/stock-in records"""
-    receiving_items = StockMovement.objects.filter(movement_type='in').order_by('-performed_at')
+    receiving_items = StockMovement.objects.filter(movement_type='IN').order_by('-created_at')
     
     context = {
         'receiving_items': receiving_items
@@ -187,7 +187,7 @@ def receiving_create(request):
 @login_required
 def receiving_detail(request, receiving_id):
     """View for showing receiving/stock-in details"""
-    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='in')
+    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='IN')
     
     context = {
         'movement': movement
@@ -199,7 +199,7 @@ def receiving_detail(request, receiving_id):
 @login_required
 def receiving_update(request, receiving_id):
     """View for updating receiving/stock-in record"""
-    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='in')
+    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='IN')
     
     if request.method == 'POST':
         # Process form
@@ -215,7 +215,7 @@ def receiving_update(request, receiving_id):
 @login_required
 def receiving_complete(request, receiving_id):
     """View for completing receiving/stock-in process"""
-    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='in')
+    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='IN')
     
     # Process completion logic
     
@@ -225,7 +225,7 @@ def receiving_complete(request, receiving_id):
 @login_required
 def shipping_list(request):
     """View for listing shipping/stock-out records"""
-    shipping_items = StockMovement.objects.filter(movement_type='out').order_by('-performed_at')
+    shipping_items = StockMovement.objects.filter(movement_type='OUT').order_by('-created_at')
     
     context = {
         'shipping_items': shipping_items
@@ -249,7 +249,7 @@ def shipping_create(request):
 @login_required
 def shipping_detail(request, shipping_id):
     """View for showing shipping/stock-out details"""
-    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='out')
+    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='OUT')
     
     context = {
         'movement': movement
@@ -261,7 +261,7 @@ def shipping_detail(request, shipping_id):
 @login_required
 def shipping_update(request, shipping_id):
     """View for updating shipping/stock-out record"""
-    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='out')
+    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='OUT')
     
     if request.method == 'POST':
         # Process form
@@ -277,7 +277,7 @@ def shipping_update(request, shipping_id):
 @login_required
 def shipping_complete(request, shipping_id):
     """View for completing shipping/stock-out process"""
-    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='out')
+    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='OUT')
     
     # Process completion logic
     
@@ -287,7 +287,7 @@ def shipping_complete(request, shipping_id):
 @login_required
 def transfer_list(request):
     """View for listing transfer records"""
-    transfer_items = StockMovement.objects.filter(movement_type='transfer').order_by('-performed_at')
+    transfer_items = StockMovement.objects.filter(movement_type='TRANSFER').order_by('-created_at')
     
     context = {
         'transfer_items': transfer_items
@@ -311,7 +311,7 @@ def transfer_create(request):
 @login_required
 def transfer_detail(request, transfer_id):
     """View for showing transfer details"""
-    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='transfer')
+    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='TRANSFER')
     
     context = {
         'movement': movement
@@ -323,7 +323,7 @@ def transfer_detail(request, transfer_id):
 @login_required
 def transfer_update(request, transfer_id):
     """View for updating transfer record"""
-    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='transfer')
+    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='TRANSFER')
     
     if request.method == 'POST':
         # Process form
@@ -339,7 +339,7 @@ def transfer_update(request, transfer_id):
 @login_required
 def transfer_complete(request, transfer_id):
     """View for completing transfer process"""
-    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='transfer')
+    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='TRANSFER')
     
     # Process completion logic
     
@@ -419,16 +419,16 @@ def inventory_reports(request):
 @login_required
 def movement_report(request):
     """View for inventory movement report"""
-    movements = StockMovement.objects.all().order_by('-performed_at')
+    movements = StockMovement.objects.all().order_by('-created_at')
     
     # Filter by date range
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     
     if start_date:
-        movements = movements.filter(performed_at__date__gte=start_date)
+        movements = movements.filter(created_at__date__gte=start_date)
     if end_date:
-        movements = movements.filter(performed_at__date__lte=end_date)
+        movements = movements.filter(created_at__date__lte=end_date)
     
     context = {
         'movements': movements,
@@ -534,7 +534,7 @@ class StockDetailView(LoginRequiredMixin, DetailView):
             product=self.object.product,
             branch=self.object.branch,
             variant=self.object.variant
-        ).order_by('-performed_at')[:20]
+        ).order_by('-created_at')[:20]
         
         return context
 
@@ -588,12 +588,12 @@ class StockMovementListView(LoginRequiredMixin, ListView):
         from_date = self.request.GET.get('from_date', '')
         to_date = self.request.GET.get('to_date', '')
         if from_date:
-            queryset = queryset.filter(performed_at__date__gte=from_date)
+            queryset = queryset.filter(created_at__date__gte=from_date)
         if to_date:
-            queryset = queryset.filter(performed_at__date__lte=to_date)
+            queryset = queryset.filter(created_at__date__lte=to_date)
         
         # Sắp xếp mặc định theo thời gian giảm dần
-        queryset = queryset.order_by('-performed_at')
+        queryset = queryset.order_by('-created_at')
         
         return queryset
     
@@ -638,7 +638,7 @@ class StockMovementCreateView(LoginRequiredMixin, CreateView):
             form.instance.performed_by = self.request.user
             
             # Xử lý chuyển động kho
-            if form.instance.movement_type == 'in':
+            if form.instance.movement_type == 'IN':
                 # Nhập kho: tăng số lượng
                 stock, created = Stock.objects.get_or_create(
                     branch=form.instance.branch,
@@ -649,7 +649,7 @@ class StockMovementCreateView(LoginRequiredMixin, CreateView):
                 stock.quantity += form.instance.quantity
                 stock.save()
                 
-            elif form.instance.movement_type == 'out':
+            elif form.instance.movement_type == 'OUT':
                 # Xuất kho: giảm số lượng
                 stock = get_object_or_404(
                     Stock,
@@ -665,7 +665,7 @@ class StockMovementCreateView(LoginRequiredMixin, CreateView):
                 stock.quantity -= form.instance.quantity
                 stock.save()
                 
-            elif form.instance.movement_type == 'transfer':
+            elif form.instance.movement_type == 'TRANSFER':
                 # Chuyển kho: giảm tại kho nguồn, tăng tại kho đích
                 if not form.instance.destination_branch:
                     form.add_error('destination_branch', 'Cần chọn chi nhánh đích cho chuyển kho.')
@@ -700,7 +700,7 @@ class StockMovementCreateView(LoginRequiredMixin, CreateView):
                 dest_stock.quantity += form.instance.quantity
                 dest_stock.save()
                 
-            elif form.instance.movement_type == 'adjustment':
+            elif form.instance.movement_type == 'ADJUSTMENT':
                 # Điều chỉnh: cập nhật trực tiếp số lượng
                 stock, created = Stock.objects.get_or_create(
                     branch=form.instance.branch,
@@ -749,7 +749,7 @@ class InventoryListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(status=status)
         
         # Sắp xếp
-        queryset = queryset.order_by('-inventory_date')
+        queryset = queryset.order_by('-created_at')
         
         return queryset
     
@@ -852,12 +852,12 @@ def complete_inventory(request, pk):
                         product=item.product,
                         variant=item.variant,
                         branch=inventory.branch,
-                        movement_type='adjustment',
+                        movement_type='ADJUSTMENT',
                         quantity=item.difference,  # Có thể âm hoặc dương
                         reference=f'Điều chỉnh từ kiểm kê #{inventory.id}',
                         notes=f'Chênh lệch: {item.difference}. Dự kiến: {item.expected_quantity}, Thực tế: {item.actual_quantity}',
-                        performed_by=request.user,
-                        performed_at=inventory.completed_at
+                        staff=request.user,
+                        created_at=inventory.completed_at
                     )
                     
                     # Cập nhật số lượng tồn kho

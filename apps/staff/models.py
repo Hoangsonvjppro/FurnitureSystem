@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from apps.accounts.models import User
 from apps.branches.models import Branch
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class StaffProfile(models.Model):
@@ -30,6 +32,21 @@ class StaffProfile(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.get_role_display()}"
     
+    def save(self, *args, **kwargs):
+        # Cập nhật vai trò User để phù hợp với StaffProfile
+        user_role_mapping = {
+            'manager': 'MANAGER',
+            'sales': 'SALES_STAFF',
+            'warehouse': 'INVENTORY_STAFF',
+            'support': 'SALES_STAFF',  # Support staff dùng cùng quyền với sales staff
+        }
+        
+        if self.role in user_role_mapping:
+            self.user.role = user_role_mapping[self.role]
+            self.user.save(update_fields=['role'])
+            
+        super().save(*args, **kwargs)
+    
     @property
     def is_manager(self):
         return self.role == 'manager'
@@ -41,6 +58,21 @@ class StaffProfile(models.Model):
     @property
     def is_warehouse_staff(self):
         return self.role == 'warehouse'
+
+# Đảm bảo khi tạo mới StaffProfile, User cũng được cập nhật vai trò
+@receiver(post_save, sender=StaffProfile)
+def update_user_role(sender, instance, created, **kwargs):
+    if not created:  # Chỉ cập nhật khi chỉnh sửa profile, không phải khi tạo mới
+        user_role_mapping = {
+            'manager': 'MANAGER',
+            'sales': 'SALES_STAFF',
+            'warehouse': 'INVENTORY_STAFF',
+            'support': 'SALES_STAFF',
+        }
+        
+        if instance.role in user_role_mapping and instance.user.role != user_role_mapping[instance.role]:
+            instance.user.role = user_role_mapping[instance.role]
+            instance.user.save(update_fields=['role'])
 
 
 class StaffSchedule(models.Model):
