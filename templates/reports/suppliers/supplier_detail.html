@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ supplier.name }} - Chi tiết nhà cung cấp{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb và actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">{{ supplier.name }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'suppliers:supplier_list' %}">Nhà cung cấp</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ supplier.name }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'suppliers:supplier_update' supplier.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Chỉnh sửa
+            </a>
+            <a href="{% url 'suppliers:purchase_order_create' %}?supplier={{ supplier.pk }}" class="btn btn-success ms-2">
+                <i class="fas fa-plus me-2"></i>Tạo đơn nhập hàng
+            </a>
+        </div>
+    </div>
+
+    <!-- Thông tin nhà cung cấp -->
+    <div class="row mb-4">
+        <!-- Thông tin cơ bản -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Thông tin nhà cung cấp</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Tên nhà cung cấp</label>
+                                <div class="fw-bold">{{ supplier.name }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Mã nhà cung cấp</label>
+                                <div class="fw-bold">{{ supplier.code }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Người liên hệ</label>
+                                <div class="fw-bold">{{ supplier.contact_person|default:"--" }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Số điện thoại</label>
+                                <div class="fw-bold">{{ supplier.phone }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Email</label>
+                                <div class="fw-bold">{{ supplier.email|default:"--" }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Địa chỉ</label>
+                                <div class="fw-bold">{{ supplier.address }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Mã số thuế</label>
+                                <div class="fw-bold">{{ supplier.tax_code|default:"--" }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Website</label>
+                                <div class="fw-bold">
+                                    {% if supplier.website %}
+                                    <a href="{{ supplier.website }}" target="_blank">{{ supplier.website }}</a>
+                                    {% else %}
+                                    --
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if supplier.description %}
+                    <div class="mb-0">
+                        <label class="form-label text-muted">Mô tả</label>
+                        <div>{{ supplier.description|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Thống kê -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Thống kê</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Đánh giá</label>
+                        <div>
+                            {% if supplier.rating %}
+                            <div class="text-warning h4 mb-0">
+                                {% for i in '12345'|make_list %}
+                                    {% if forloop.counter <= supplier.rating %}
+                                    <i class="fas fa-star"></i>
+                                    {% else %}
+                                    <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted">Chưa đánh giá</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Trạng thái</label>
+                        <div>
+                            {% if supplier.is_active %}
+                            <span class="badge bg-success">Đang hoạt động</span>
+                            {% else %}
+                            <span class="badge bg-danger">Ngừng hoạt động</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Tổng giá trị đã nhập</label>
+                        <div class="fw-bold text-primary h4 mb-0">{{ total_purchased|floatformat:0|intcomma }} VND</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Số lượng sản phẩm đã nhập</label>
+                        <div class="fw-bold h4 mb-0">{{ product_count }}</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label text-muted">Ngày tạo</label>
+                        <div>{{ supplier.created_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách đơn hàng gần đây -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Đơn hàng nhập gần đây</h5>
+                <a href="{% url 'suppliers:purchase_order_list' %}?supplier={{ supplier.pk }}" class="btn btn-sm btn-link">Xem tất cả</a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Mã đơn hàng</th>
+                        <th>Ngày đặt</th>
+                        <th>Chi nhánh</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Tổng tiền</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in purchase_orders %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'suppliers:purchase_order_detail' order.pk %}" class="text-decoration-none fw-bold">
+                                {{ order.order_number }}
+                            </a>
+                        </td>
+                        <td>{{ order.order_date|date:"d/m/Y" }}</td>
+                        <td>{{ order.branch.name }}</td>
+                        <td>
+                            {% if order.status == 'draft' %}
+                            <span class="badge bg-secondary">Nháp</span>
+                            {% elif order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                            {% elif order.status == 'confirmed' %}
+                            <span class="badge bg-info">Đã xác nhận</span>
+                            {% elif order.status == 'received' %}
+                            <span class="badge bg-success">Đã nhận hàng</span>
+                            {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">Đã hủy</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold">{{ order.total_amount|floatformat:0|intcomma }} VND</td>
+                        <td class="text-end">
+                            <a href="{% url 'suppliers:purchase_order_detail' order.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-shopping-cart fa-2x mb-3"></i>
+                                <p>Chưa có đơn hàng nào</p>
+                                <a href="{% url 'suppliers:purchase_order_create' %}?supplier={{ supplier.pk }}" class="btn btn-sm btn-primary">
+                                    Tạo đơn hàng nhập
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

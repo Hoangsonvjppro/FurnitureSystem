@@ -1,0 +1,79 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Báo cáo chi nhánh</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for data in branch_data %}
+                    <div class="col-md-6 col-sm-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ data.branch.name }}</h5>
+                                <div class="card-tools">
+                                    <span class="badge badge-info">{{ data.branch.address }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-info"><i class="fas fa-shopping-cart"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Đơn hàng tháng này</span>
+                                                <span class="info-box-number">{{ data.monthly_sales.count|default:"0" }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-success"><i class="fas fa-money-bill"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Doanh số tháng này</span>
+                                                <span class="info-box-number">{{ data.monthly_sales.total|default:"0"|floatformat:0 }} VNĐ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-warning"><i class="fas fa-boxes"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Tổng số hàng</span>
+                                                <span class="info-box-number">{{ data.inventory.total_items|default:"0" }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-danger"><i class="fas fa-warehouse"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Giá trị tồn kho</span>
+                                                <span class="info-box-number">{{ data.inventory.total_value|default:"0"|floatformat:0 }} VNĐ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            Không có dữ liệu chi nhánh nào.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

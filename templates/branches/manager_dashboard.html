@@ -1,0 +1,319 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Branch Manager Dashboard - Furniture System{% endblock %}
+
+{% block page_title %}{{ branch.name }} - Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Overview Stats Cards -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Doanh số (Tháng)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ monthly_revenue|default:"0" }} VNĐ</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Số đơn hàng (Tháng)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ monthly_orders|default:"0" }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Số lượng nhân viên</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ staff_count|default:"0" }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Tồn kho</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ inventory_value|default:"0" }} VNĐ</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-warehouse fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Performance & Inventory Status -->
+<div class="row">
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Hiệu suất bán hàng</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">Xem theo:</div>
+                        <a class="dropdown-item" href="#">Tuần</a>
+                        <a class="dropdown-item" href="#">Tháng</a>
+                        <a class="dropdown-item" href="#">Quý</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="salesPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Trạng thái kho hàng</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="inventoryStatusChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-success"></i> Đủ hàng
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-warning"></i> Sắp hết
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-danger"></i> Hết hàng
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Staff Performance & Pending Tasks -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Hiệu suất nhân viên</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="staffPerformanceTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Nhân viên</th>
+                                <th>Vị trí</th>
+                                <th>Doanh số</th>
+                                <th>Đơn hàng</th>
+                                <th>Hiệu suất</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff in staff_performance %}
+                            <tr>
+                                <td>{{ staff.name }}</td>
+                                <td>{{ staff.position }}</td>
+                                <td>{{ staff.sales }}</td>
+                                <td>{{ staff.orders }}</td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-{{ staff.performance_color }}" role="progressbar" 
+                                            style="width: {{ staff.performance_percentage }}%" 
+                                            aria-valuenow="{{ staff.performance_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ staff.performance_percentage }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Công việc cần phê duyệt</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for task in pending_tasks %}
+                    <a href="{{ task.url }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ task.title }}</h5>
+                            <small>{{ task.time_since }}</small>
+                        </div>
+                        <p class="mb-1">{{ task.description }}</p>
+                        <small>Người yêu cầu: {{ task.requester }}</small>
+                    </a>
+                    {% empty %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i> Không có công việc nào cần phê duyệt
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Products Selling Status -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Top sản phẩm bán chạy</h6>
+                <a href="/branch-manager/products/" class="btn btn-sm btn-primary shadow-sm">
+                    <i class="fas fa-list fa-sm text-white-50"></i> Xem tất cả
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="topProductsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Danh mục</th>
+                                <th>Đã bán</th>
+                                <th>Tồn kho</th>
+                                <th>Doanh thu</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-thumbnail me-2" style="width: 50px; height: 50px;">
+                                        <span>{{ product.name }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ product.category }}</td>
+                                <td>{{ product.sold_count }}</td>
+                                <td>{{ product.stock }}</td>
+                                <td>{{ product.revenue }}</td>
+                                <td><span class="badge bg-{{ product.status_color }}">{{ product.status }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Sales Performance Chart
+    var salesCtx = document.getElementById('salesPerformanceChart').getContext('2d');
+    var salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ performance_dates|safe }},
+            datasets: [{
+                label: 'Doanh số (VNĐ)',
+                data: {{ sales_data|safe }},
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Inventory Status Chart
+    var inventoryCtx = document.getElementById('inventoryStatusChart').getContext('2d');
+    var inventoryChart = new Chart(inventoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Đủ hàng', 'Sắp hết', 'Hết hàng'],
+            datasets: [{
+                data: {{ inventory_status|safe }},
+                backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
+                hoverBackgroundColor: ['#17a673', '#dda20a', '#c0392b'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,110 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Báo cáo tồn kho - {{ branch_name }}</h3>
+                <div class="card-tools">
+                    <form method="get" class="form-inline">
+                        <div class="form-group mr-2">
+                            <select name="branch" class="form-control">
+                                <option value="">Tất cả chi nhánh</option>
+                                {% for branch in branches %}
+                                <option value="{{ branch.id }}" {% if branch.id|stringformat:"i" == branch_id %}selected{% endif %}>{{ branch.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Lọc</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 col-sm-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-info"><i class="fas fa-boxes"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Tổng số lượng</span>
+                                <span class="info-box-number">{{ total_inventory.total_items|default:"0" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-success"><i class="fas fa-money-bill"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Tổng giá trị</span>
+                                <span class="info-box-number">{{ total_inventory.total_value|default:"0"|floatformat:0 }} VNĐ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danh sách sản phẩm tồn kho thấp -->
+                <div class="mt-4">
+                    <h5>Sản phẩm tồn kho thấp</h5>
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Chi nhánh</th>
+                                <th>Số lượng hiện tại</th>
+                                <th>Số lượng tối thiểu</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in low_stock %}
+                            <tr>
+                                <td>{{ stock.product.name }}</td>
+                                <td>{{ stock.branch.name }}</td>
+                                <td>{{ stock.quantity }}</td>
+                                <td>{{ stock.min_quantity }}</td>
+                                <td>
+                                    <span class="badge badge-danger">Cần nhập hàng</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Không có sản phẩm nào tồn kho thấp</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tồn kho theo danh mục -->
+                <div class="mt-4">
+                    <h5>Tồn kho theo danh mục</h5>
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Danh mục</th>
+                                <th>Số lượng</th>
+                                <th>Giá trị</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in category_stock %}
+                            <tr>
+                                <td>{{ category.product__category__name|default:"Không có danh mục" }}</td>
+                                <td>{{ category.total_items }}</td>
+                                <td>{{ category.total_value|floatformat:0 }} VNĐ</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

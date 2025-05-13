@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Danh sách đơn hàng nhập{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Danh sách đơn hàng nhập</h1>
+        <div>
+            <a href="{% url 'suppliers:purchase_order_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Tạo đơn hàng nhập
+            </a>
+        </div>
+    </div>
+
+    <!-- Thống kê -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-0">Đơn nháp</h5>
+                    <div class="d-flex align-items-center mt-1">
+                        <div class="flex-grow-1">
+                            <h2 class="mb-0">{{ draft_count }}</h2>
+                        </div>
+                        <div class="icon-shape bg-light text-secondary rounded-circle p-3">
+                            <i class="fas fa-pencil-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-0">Chờ xác nhận</h5>
+                    <div class="d-flex align-items-center mt-1">
+                        <div class="flex-grow-1">
+                            <h2 class="mb-0">{{ pending_count }}</h2>
+                        </div>
+                        <div class="icon-shape bg-light text-warning rounded-circle p-3">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-0">Đã xác nhận</h5>
+                    <div class="d-flex align-items-center mt-1">
+                        <div class="flex-grow-1">
+                            <h2 class="mb-0">{{ confirmed_count }}</h2>
+                        </div>
+                        <div class="icon-shape bg-light text-info rounded-circle p-3">
+                            <i class="fas fa-thumbs-up"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-0">Đã nhận hàng</h5>
+                    <div class="d-flex align-items-center mt-1">
+                        <div class="flex-grow-1">
+                            <h2 class="mb-0">{{ received_count }}</h2>
+                        </div>
+                        <div class="icon-shape bg-light text-success rounded-circle p-3">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bộ lọc tìm kiếm -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="search" class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="Mã đơn, nhà cung cấp...">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="status" class="form-label">Trạng thái</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Tất cả</option>
+                        <option value="draft" {% if status == 'draft' %}selected{% endif %}>Nháp</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Chờ xác nhận</option>
+                        <option value="confirmed" {% if status == 'confirmed' %}selected{% endif %}>Đã xác nhận</option>
+                        <option value="received" {% if status == 'received' %}selected{% endif %}>Đã nhận hàng</option>
+                        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="supplier" class="form-label">Nhà cung cấp</label>
+                    <select class="form-select" id="supplier" name="supplier">
+                        <option value="">Tất cả</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.pk }}" {% if supplier_id == supplier.pk|stringformat:"i" %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="from_date" class="form-label">Từ ngày</label>
+                    <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="to_date" class="form-label">Đến ngày</label>
+                    <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                </div>
+                <div class="col-12 d-flex justify-content-end mb-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Tìm kiếm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách đơn hàng -->
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0">Mã đơn hàng</th>
+                        <th class="border-0">Nhà cung cấp</th>
+                        <th class="border-0">Chi nhánh</th>
+                        <th class="border-0">Ngày đặt</th>
+                        <th class="border-0">Trạng thái</th>
+                        <th class="border-0 text-end">Tổng tiền</th>
+                        <th class="border-0 text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in purchase_orders %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'suppliers:purchase_order_detail' order.pk %}" class="text-decoration-none fw-bold">
+                                {{ order.order_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{% url 'suppliers:supplier_detail' order.supplier.pk %}" class="text-decoration-none">
+                                {{ order.supplier.name }}
+                            </a>
+                        </td>
+                        <td>{{ order.branch.name }}</td>
+                        <td>{{ order.order_date|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if order.status == 'draft' %}
+                            <span class="badge bg-secondary">Nháp</span>
+                            {% elif order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                            {% elif order.status == 'confirmed' %}
+                            <span class="badge bg-info">Đã xác nhận</span>
+                            {% elif order.status == 'received' %}
+                            <span class="badge bg-success">Đã nhận hàng</span>
+                            {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">Đã hủy</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold">{{ order.total_amount|floatformat:0|intcomma }} VND</td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <a href="{% url 'suppliers:purchase_order_detail' order.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if order.status != 'received' and order.status != 'cancelled' %}
+                                <a href="{% url 'suppliers:purchase_order_update' order.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-box fa-2x mb-3"></i>
+                                <p>Không tìm thấy đơn hàng nhập nào</p>
+                                <a href="{% url 'suppliers:purchase_order_create' %}" class="btn btn-sm btn-primary">
+                                    Tạo đơn hàng nhập
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Phân trang -->
+        {% if purchase_orders.has_other_pages %}
+        <div class="card-footer border-0 py-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if purchase_orders.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">Đầu</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ purchase_orders.previous_page_number }}">Trước</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in purchase_orders.paginator.page_range %}
+                        {% if purchase_orders.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > purchase_orders.number|add:'-3' and num < purchase_orders.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if purchase_orders.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ purchase_orders.next_page_number }}">Tiếp</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ purchase_orders.paginator.num_pages }}">Cuối</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

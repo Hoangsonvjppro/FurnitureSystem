@@ -166,6 +166,12 @@ Hệ thống sử dụng phân quyền dựa trên vai trò (role-based permissi
    - Xem báo cáo doanh thu toàn hệ thống
    - Phân tích hiệu suất theo chi nhánh và nhân viên
 
+5. **Đánh giá nhân viên**:
+   - Tạo các đánh giá định kỳ cho nhân viên
+   - Đánh giá hiệu suất làm việc theo nhiều tiêu chí
+   - Xuất phiếu đánh giá dưới dạng PDF
+   - Theo dõi quá trình phát triển của nhân viên qua thời gian
+
 ### Hướng dẫn cho Quản lý chi nhánh
 
 #### Quản lý chi nhánh
@@ -208,6 +214,21 @@ Hệ thống sử dụng phân quyền dựa trên vai trò (role-based permissi
    - Nhận thanh toán từ khách hàng
    - Ghi nhận phương thức thanh toán
    - In hóa đơn
+
+5. **Quản lý đơn hàng**:
+   - Duyệt đơn hàng của khách hàng
+   - Cập nhật trạng thái đơn hàng (đang xử lý, đang giao, đã giao, đã hủy)
+   - Hủy đơn hàng khi cần thiết và ghi chú lý do
+
+6. **In và lưu trữ hóa đơn**:
+   - Tạo và xuất hóa đơn bán hàng dưới dạng PDF
+   - Lưu trữ hóa đơn trong hệ thống để tham khảo sau này
+   - Gửi hóa đơn qua email cho khách hàng (nếu cần)
+
+7. **Xem lịch sử đơn hàng**:
+   - Tra cứu đơn hàng theo thời gian (ngày, tháng, năm)
+   - Lọc đơn hàng theo trạng thái, phương thức thanh toán
+   - Xem thống kê doanh số bán hàng cá nhân
 
 ### Hướng dẫn cho Nhân viên kho
 

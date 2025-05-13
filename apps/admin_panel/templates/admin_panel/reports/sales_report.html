@@ -1,0 +1,258 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Báo cáo doanh số</h3>
+                <div class="card-tools">
+                    <form method="get" class="form-inline">
+                        <div class="form-group mr-2">
+                            <label for="start_date" class="mr-2">Từ ngày:</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="form-group mr-2">
+                            <label for="end_date" class="mr-2">Đến ngày:</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Lọc</button>
+                        <a href="{% url 'admin_panel:export_report' 'sales' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-success ml-2">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
+                        </a>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-info"><i class="fas fa-shopping-cart"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Tổng đơn hàng</span>
+                                <span class="info-box-number">{{ total_sales.count|default:"0" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-success"><i class="fas fa-money-bill"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Tổng doanh thu</span>
+                                <span class="info-box-number">{{ total_sales.total|default:"0"|floatformat:0 }} VNĐ</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-warning"><i class="fas fa-calculator"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Giá trị đơn trung bình</span>
+                                <span class="info-box-number">{{ total_sales.avg|default:"0"|floatformat:0 }} VNĐ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Doanh số theo chi nhánh</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:250px;">
+                                    <canvas id="branchSalesChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Chi nhánh</th>
+                                            <th>Đơn hàng</th>
+                                            <th>Doanh số</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for branch in branch_sales %}
+                                        <tr>
+                                            <td>{{ branch.branch__name }}</td>
+                                            <td>{{ branch.count }}</td>
+                                            <td>{{ branch.total|floatformat:0 }} VNĐ</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center">Không có dữ liệu</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Doanh số theo danh mục</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:250px;">
+                                    <canvas id="categorySalesChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Danh mục</th>
+                                            <th>Số lượng</th>
+                                            <th>Doanh số</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category in category_sales %}
+                                        <tr>
+                                            <td>{{ category.product__category__name|default:"Không có danh mục" }}</td>
+                                            <td>{{ category.count }}</td>
+                                            <td>{{ category.total|floatformat:0 }} VNĐ</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center">Không có dữ liệu</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Danh sách đơn hàng</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn hàng</th>
+                                    <th>Khách hàng</th>
+                                    <th>Chi nhánh</th>
+                                    <th>Ngày đặt</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>
+                                        {% if order.customer %}
+                                            {% if order.customer.get_full_name %}
+                                                {{ order.customer.get_full_name }}
+                                            {% else %}
+                                                {{ order.customer.username }}
+                                            {% endif %}
+                                        {% else %}
+                                            {{ order.full_name }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.branch.name|default:"N/A" }}</td>
+                                    <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ order.total|floatformat:0 }} VNĐ</td>
+                                    <td>
+                                        {% if order.status == 'completed' %}
+                                            <span class="badge badge-success">Hoàn thành</span>
+                                        {% elif order.status == 'pending' %}
+                                            <span class="badge badge-warning">Đang xử lý</span>
+                                        {% elif order.status == 'shipped' %}
+                                            <span class="badge badge-info">Đang giao</span>
+                                        {% elif order.status == 'cancelled' %}
+                                            <span class="badge badge-danger">Đã hủy</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Không có đơn hàng nào</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // Branch Sales Chart
+        var branchCtx = document.getElementById('branchSalesChart').getContext('2d');
+        var branchLabels = [{% for branch in branch_sales %}'{{ branch.branch__name }}',{% endfor %}];
+        var branchData = [{% for branch in branch_sales %}{{ branch.total|default:0 }},{% endfor %}];
+        
+        var branchChart = new Chart(branchCtx, {
+            type: 'bar',
+            data: {
+                labels: branchLabels,
+                datasets: [{
+                    label: 'Doanh số (VNĐ)',
+                    data: branchData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Category Sales Chart
+        var categoryCtx = document.getElementById('categorySalesChart').getContext('2d');
+        var categoryLabels = [{% for category in category_sales %}'{{ category.product__category__name|default:"Không có danh mục" }}',{% endfor %}];
+        var categoryData = [{% for category in category_sales %}{{ category.total|default:0 }},{% endfor %}];
+        var backgroundColors = [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)'
+        ];
+        
+        var categoryChart = new Chart(categoryCtx, {
+            type: 'pie',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryData,
+                    backgroundColor: backgroundColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

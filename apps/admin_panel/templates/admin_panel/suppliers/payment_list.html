@@ -1,0 +1,57 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Quản lý thanh toán nhà cung cấp</h3>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Mã đơn hàng</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Ngày tạo</th>
+                    <th>Tổng tiền</th>
+                    <th>Đã thanh toán</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in purchase_orders %}
+                <tr>
+                    <td>{{ po.reference }}</td>
+                    <td>{{ po.supplier.name }}</td>
+                    <td>{{ po.created_at|date:"d/m/Y" }}</td>
+                    <td>{{ po.total_amount|floatformat:0 }} VNĐ</td>
+                    <td>{{ po.paid_amount|floatformat:0 }} VNĐ</td>
+                    <td>
+                        {% if po.status == 'completed' %}
+                            <span class="badge badge-success">Đã hoàn thành</span>
+                        {% elif po.status == 'pending' %}
+                            <span class="badge badge-warning">Đang chờ</span>
+                        {% elif po.status == 'cancelled' %}
+                            <span class="badge badge-danger">Đã hủy</span>
+                        {% else %}
+                            <span class="badge badge-info">{{ po.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'admin_panel:payment_detail' po.id %}" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> Chi tiết
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Không có dữ liệu thanh toán</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

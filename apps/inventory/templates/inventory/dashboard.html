@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Quản lý kho{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'inventory:dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Tổng quan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'inventory:stock_list' %}">
+                            <i class="fas fa-boxes"></i> Tồn kho
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'inventory:movement_list' %}">
+                            <i class="fas fa-exchange-alt"></i> Nhập xuất kho
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'inventory:product_list' %}">
+                            <i class="fas fa-box-open"></i> Sản phẩm
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'inventory:reports' %}">
+                            <i class="fas fa-chart-bar"></i> Báo cáo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'inventory:profile' %}">
+                            <i class="fas fa-user"></i> Hồ sơ cá nhân
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Tổng quan kho hàng</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <a href="{% url 'inventory:movement_create' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> Tạo phiếu nhập/xuất
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <h5 class="card-title">Tổng số sản phẩm</h5>
+                            <p class="card-text display-6">{{ total_products }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <h5 class="card-title">Giá trị tồn kho</h5>
+                            <p class="card-text display-6">{{ total_value|floatformat:0 }}đ</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <h5 class="card-title">Cần nhập thêm</h5>
+                            <p class="card-text display-6">{{ low_stock_count }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body">
+                            <h5 class="card-title">Đã hết hàng</h5>
+                            <p class="card-text display-6">{{ out_of_stock }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Movements -->
+            <h2 class="h4 mt-4">Hoạt động gần đây</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th scope="col">Mã phiếu</th>
+                            <th scope="col">Loại</th>
+                            <th scope="col">Ngày</th>
+                            <th scope="col">Sản phẩm</th>
+                            <th scope="col">Số lượng</th>
+                            <th scope="col">Người thực hiện</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movement in recent_movements %}
+                        <tr>
+                            <td>{{ movement.reference_code }}</td>
+                            <td>
+                                {% if movement.movement_type == 'in' %}
+                                <span class="badge bg-success">Nhập kho</span>
+                                {% elif movement.movement_type == 'out' %}
+                                <span class="badge bg-danger">Xuất kho</span>
+                                {% elif movement.movement_type == 'transfer' %}
+                                <span class="badge bg-info">Chuyển kho</span>
+                                {% elif movement.movement_type == 'adjust' %}
+                                <span class="badge bg-warning">Điều chỉnh</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movement.created_at|date:"d/m/Y" }}</td>
+                            <td>{{ movement.product.name }}</td>
+                            <td>{{ movement.quantity }}</td>
+                            <td>{{ movement.created_by.get_full_name|default:movement.created_by.username }}</td>
+                            <td><a href="{% url 'inventory:movement_detail' movement.id %}" class="btn btn-sm btn-outline-primary">Chi tiết</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Không có hoạt động nào gần đây</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Low Stock Products -->
+            <h2 class="h4 mt-4">Sản phẩm cần nhập thêm</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th scope="col">Mã</th>
+                            <th scope="col">Sản phẩm</th>
+                            <th scope="col">Tồn kho</th>
+                            <th scope="col">Tồn kho tối thiểu</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock in low_stock_items %}
+                        <tr>
+                            <td>{{ stock.product.sku }}</td>
+                            <td>{{ stock.product.name }}</td>
+                            <td>{{ stock.quantity }}</td>
+                            <td>{{ stock.min_quantity }}</td>
+                            <td>
+                                {% if stock.quantity == 0 %}
+                                <span class="badge bg-danger">Hết hàng</span>
+                                {% else %}
+                                <span class="badge bg-warning">Thấp</span>
+                                {% endif %}
+                            </td>
+                            <td><a href="{% url 'inventory:stock_detail' stock.id %}" class="btn btn-sm btn-outline-primary">Chi tiết</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Không có sản phẩm nào cần nhập thêm</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Chart -->
+            <h2 class="h4 mt-4">Phân bố tồn kho theo danh mục</h2>
+            <div>
+                <canvas id="inventoryChart"></canvas>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Chart data
+    const categoryLabels = {{ category_labels|safe }};
+    const categoryData = {{ category_data|safe }};
+
+    // Create chart
+    const ctx = document.getElementById('inventoryChart').getContext('2d');
+    const inventoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryData,
+                backgroundColor: [
+                    'rgba(78, 115, 223, 0.8)',
+                    'rgba(28, 200, 138, 0.8)',
+                    'rgba(54, 185, 204, 0.8)',
+                    'rgba(246, 194, 62, 0.8)',
+                    'rgba(231, 74, 59, 0.8)',
+                    'rgba(133, 135, 150, 0.8)',
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

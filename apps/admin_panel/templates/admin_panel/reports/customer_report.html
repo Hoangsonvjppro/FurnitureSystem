@@ -1,0 +1,70 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Báo cáo khách hàng</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-info"><i class="fas fa-users"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Tổng số khách hàng</span>
+                                <span class="info-box-number">{{ total_customers }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-success"><i class="fas fa-user-plus"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Khách hàng mới tháng này</span>
+                                <span class="info-box-number">{{ new_customers }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top khách hàng -->
+                <div class="mt-4">
+                    <h5>Top khách hàng (theo giá trị đơn hàng)</h5>
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Số đơn hàng</th>
+                                <th>Tổng chi tiêu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in top_customers %}
+                            <tr>
+                                <td>
+                                    {% if customer.customer__first_name or customer.customer__last_name %}
+                                        {{ customer.customer__first_name }} {{ customer.customer__last_name }}
+                                    {% else %}
+                                        {{ customer.customer__username }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ customer.order_count }}</td>
+                                <td>{{ customer.total_spent|floatformat:0 }} VNĐ</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

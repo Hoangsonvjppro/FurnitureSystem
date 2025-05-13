@@ -1,0 +1,55 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Báo cáo hệ thống</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-info"><i class="fas fa-chart-line"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Báo cáo doanh số</span>
+                                <a href="{% url 'admin_panel:sales_report' %}" class="btn btn-sm btn-info mt-2">Xem báo cáo</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-success"><i class="fas fa-warehouse"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Báo cáo tồn kho</span>
+                                <a href="{% url 'admin_panel:inventory_report' %}" class="btn btn-sm btn-success mt-2">Xem báo cáo</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-warning"><i class="fas fa-store"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Báo cáo chi nhánh</span>
+                                <a href="{% url 'admin_panel:branch_report' %}" class="btn btn-sm btn-warning mt-2">Xem báo cáo</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-danger"><i class="fas fa-users"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Báo cáo khách hàng</span>
+                                <a href="{% url 'admin_panel:customer_report' %}" class="btn btn-sm btn-danger mt-2">Xem báo cáo</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

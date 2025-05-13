@@ -21,6 +21,13 @@ class User(AbstractUser):
     date_of_birth = models.DateField(_("Ngày sinh"), null=True, blank=True)
     avatar = models.ImageField(_("Ảnh đại diện"), upload_to='avatars/', null=True, blank=True)
     
+    # Mức độ xác thực: 0=cơ bản, 1=email, 2=2FA
+    authentication_level = models.PositiveSmallIntegerField(_("Mức độ xác thực"), default=0)
+    
+    # Thiết lập cho nhân viên
+    require_password_change = models.BooleanField(_("Yêu cầu đổi mật khẩu"), default=False)
+    last_dashboard_visit = models.DateTimeField(_("Lần truy cập dashboard cuối"), null=True, blank=True)
+    
     class Meta:
         verbose_name = _("Người dùng")
         verbose_name_plural = _("Người dùng")
@@ -38,6 +45,43 @@ class User(AbstractUser):
     
     def __str__(self):
         return self.get_full_name() or self.username
+    
+    @property
+    def is_customer(self):
+        """Kiểm tra user có phải là khách hàng thông thường hay không"""
+        return not (self.is_staff or self.is_branch_manager or self.is_sales_staff or self.is_inventory_staff)
+    
+    @property
+    def is_staff_member(self):
+        """Kiểm tra user có phải là nhân viên bất kỳ hay không"""
+        return self.is_branch_manager or self.is_sales_staff or self.is_inventory_staff or self.is_staff
+    
+    @property
+    def role_name(self):
+        """Trả về tên role của user để hiển thị"""
+        if self.is_superuser:
+            return _("Quản trị viên")
+        if self.is_branch_manager:
+            return _("Quản lý chi nhánh")
+        if self.is_sales_staff:
+            return _("Nhân viên bán hàng")
+        if self.is_inventory_staff:
+            return _("Nhân viên kho")
+        if self.is_staff:
+            return _("Nhân viên hệ thống")
+        return _("Khách hàng")
+    
+    def get_dashboard_url(self):
+        """Trả về URL dashboard tương ứng với vai trò của user"""
+        if self.is_superuser or self.is_staff:
+            return '/admin/'
+        if self.is_branch_manager:
+            return '/branch-manager/'
+        if self.is_sales_staff:
+            return '/sales/'
+        if self.is_inventory_staff:
+            return '/inventory/'
+        return '/profile/'
 
 
 class CustomerProfile(models.Model):

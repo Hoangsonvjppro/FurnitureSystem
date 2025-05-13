@@ -1,0 +1,46 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Danh sách thuộc tính sản phẩm</h3>
+        <div class="card-tools">
+            <a href="{% url 'admin_panel:attribute_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Thêm thuộc tính mới
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên thuộc tính</th>
+                    <th>Mô tả</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attribute in attributes %}
+                <tr>
+                    <td>{{ attribute.id }}</td>
+                    <td>{{ attribute.name }}</td>
+                    <td>{{ attribute.description|default:"-" }}</td>
+                    <td>
+                        <a href="{% url 'admin_panel:attribute_edit' attribute.id %}" class="btn btn-sm btn-info">
+                            <i class="fas fa-edit"></i> Sửa
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">Không có thuộc tính nào</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

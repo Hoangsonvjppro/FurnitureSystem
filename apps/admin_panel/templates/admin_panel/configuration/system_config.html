@@ -1,0 +1,70 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Cấu hình hệ thống</h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">Cấu hình chung</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="site_name">Tên cửa hàng</label>
+                                <input type="text" class="form-control" id="site_name" name="site_name" value="Quản Lý Nội Thất">
+                            </div>
+                            <div class="form-group">
+                                <label for="site_description">Mô tả cửa hàng</label>
+                                <textarea class="form-control" id="site_description" name="site_description" rows="3">Hệ thống quản lý nội thất chuyên nghiệp</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="contact_email">Email liên hệ</label>
+                                <input type="email" class="form-control" id="contact_email" name="contact_email" value="contact@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="contact_phone">Số điện thoại liên hệ</label>
+                                <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="0123456789">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">Cấu hình đơn hàng</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="default_tax_rate">Thuế mặc định (%)</label>
+                                <input type="number" class="form-control" id="default_tax_rate" name="default_tax_rate" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label for="default_shipping_fee">Phí vận chuyển mặc định</label>
+                                <input type="number" class="form-control" id="default_shipping_fee" name="default_shipping_fee" value="30000">
+                            </div>
+                            <div class="form-group">
+                                <label for="min_order_free_shipping">Giá trị đơn hàng tối thiểu để miễn phí vận chuyển</label>
+                                <input type="number" class="form-control" id="min_order_free_shipping" name="min_order_free_shipping" value="1000000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

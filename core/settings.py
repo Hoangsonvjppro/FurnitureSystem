@@ -51,6 +51,7 @@ PROJECT_APPS = [
     'apps.branches',
     'apps.reports',
     'apps.staff',
+    'apps.admin_panel',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
@@ -66,6 +67,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'apps.accounts.middleware.RoleBasedRedirectMiddleware',
     # 'apps.accounts.middleware.BranchMiddleware',  # Will implement later
 ]
 
@@ -185,9 +187,9 @@ JAZZMIN_SETTINGS = {
     # Copyright on the footer
     "copyright": "Furniture System",
     # The model admin to search from the search bar, search bar omitted if excluded
-    "search_model": "auth.User",
+    "search_model": "accounts.User",
     # Field name on user model that contains avatar ImageField/URLField/Charfield or a callable that receives the user
-    "user_avatar": None,
+    "user_avatar": "avatar",
     ############
     # Top Menu #
     ############
@@ -198,9 +200,7 @@ JAZZMIN_SETTINGS = {
         # external url that opens in a new window (Permissions can be added)
         {"name": "Website", "url": "/", "new_window": True},
         # model admin to link to (Permissions checked against model)
-        {"model": "auth.User"},
-        # App with dropdown menu to all its models pages
-        {"app": "books"},
+        {"model": "accounts.User"},
     ],
     #############
     # Side Menu #

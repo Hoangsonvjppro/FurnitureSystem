@@ -1,0 +1,128 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ attribute.id|yesno:"Chỉnh sửa,Thêm mới" }} thuộc tính sản phẩm</h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="name">Tên thuộc tính <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ attribute.name|default:'' }}" required>
+                <small class="form-text text-muted">Ví dụ: Màu sắc, Kích thước, Chất liệu...</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Mô tả</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ attribute.description|default:'' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_required" name="is_required" {% if attribute.is_required %}checked{% endif %}>
+                    <label class="custom-control-label" for="is_required">Bắt buộc</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_filterable" name="is_filterable" {% if attribute.is_filterable %}checked{% endif %}>
+                    <label class="custom-control-label" for="is_filterable">Dùng làm bộ lọc</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_visible" name="is_visible" {% if attribute.is_visible|default:True %}checked{% endif %}>
+                    <label class="custom-control-label" for="is_visible">Hiển thị cho khách hàng</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="display_order">Thứ tự hiển thị</label>
+                <input type="number" class="form-control" id="display_order" name="display_order" value="{{ attribute.display_order|default:0 }}">
+                <small class="form-text text-muted">Số thấp hơn sẽ hiển thị trước</small>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">Giá trị thuộc tính</h5>
+                </div>
+                <div class="card-body">
+                    <div id="attribute-values">
+                        {% if attribute.values.all %}
+                            {% for value in attribute.values.all %}
+                            <div class="form-row mb-2 attribute-value-row">
+                                <div class="col-8">
+                                    <input type="text" class="form-control" name="attribute_values[]" value="{{ value.value }}" placeholder="Giá trị thuộc tính">
+                                </div>
+                                <div class="col-3">
+                                    <input type="number" class="form-control" name="attribute_display_orders[]" value="{{ value.display_order }}" placeholder="Thứ tự">
+                                </div>
+                                <div class="col-1">
+                                    <button type="button" class="btn btn-danger remove-value"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="form-row mb-2 attribute-value-row">
+                                <div class="col-8">
+                                    <input type="text" class="form-control" name="attribute_values[]" placeholder="Giá trị thuộc tính">
+                                </div>
+                                <div class="col-3">
+                                    <input type="number" class="form-control" name="attribute_display_orders[]" value="0" placeholder="Thứ tự">
+                                </div>
+                                <div class="col-1">
+                                    <button type="button" class="btn btn-danger remove-value"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="btn btn-success mt-2" id="add-value">
+                        <i class="fas fa-plus"></i> Thêm giá trị
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">Lưu thuộc tính</button>
+                <a href="{% url 'admin_panel:attribute_list' %}" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Add attribute value
+        $("#add-value").click(function() {
+            var newRow = `
+                <div class="form-row mb-2 attribute-value-row">
+                    <div class="col-8">
+                        <input type="text" class="form-control" name="attribute_values[]" placeholder="Giá trị thuộc tính">
+                    </div>
+                    <div class="col-3">
+                        <input type="number" class="form-control" name="attribute_display_orders[]" value="0" placeholder="Thứ tự">
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-danger remove-value"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            `;
+            $("#attribute-values").append(newRow);
+        });
+        
+        // Remove attribute value
+        $(document).on("click", ".remove-value", function() {
+            $(this).closest(".attribute-value-row").remove();
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

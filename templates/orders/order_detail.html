@@ -18,6 +18,9 @@
             <a href="#" onclick="window.print()" class="btn btn-outline-primary">
                 <i class="fas fa-print me-2"></i>In đơn hàng
             </a>
+            <a href="{% url 'orders:generate_invoice' order.id %}" class="btn btn-outline-danger" target="_blank">
+                <i class="fas fa-file-pdf me-2"></i>Xuất hóa đơn PDF
+            </a>
             <a href="{% url 'orders:add_payment' order.id %}" class="btn btn-outline-success">
                 <i class="fas fa-money-bill-wave me-2"></i>Thanh toán
             </a>

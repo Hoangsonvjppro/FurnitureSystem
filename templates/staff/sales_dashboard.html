@@ -1,0 +1,308 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Sales Dashboard - Furniture System{% endblock %}
+
+{% block page_title %}Nhân viên bán hàng - Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Overview Stats Cards -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Đơn hàng hôm nay</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_orders_count|default:"0" }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Doanh số hôm nay</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_orders_value|default:"0" }} VNĐ</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Mục tiêu tháng</div>
+                        <div class="row no-gutters align-items-center">
+                            <div class="col-auto">
+                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ sales_target_percentage|default:"0" }}%</div>
+                            </div>
+                            <div class="col">
+                                <div class="progress progress-sm mr-2">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ sales_target_percentage|default:'0' }}%"
+                                        aria-valuenow="{{ sales_target_percentage|default:'0' }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Khách hàng mới (7 ngày)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ new_customers_count|default:"0" }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Performance -->
+<div class="row">
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Hiệu suất bán hàng</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">Xem theo:</div>
+                        <a class="dropdown-item" href="#">Tuần</a>
+                        <a class="dropdown-item" href="#">Tháng</a>
+                        <a class="dropdown-item" href="#">Quý</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="salesPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Chi nhánh của bạn</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h4>{{ branch.name }}</h4>
+                    <p>{{ branch.address }}</p>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <h5>{{ branch.manager.get_full_name }}</h5>
+                            <p class="small text-muted">Quản lý chi nhánh</p>
+                        </div>
+                        <div class="col-6">
+                            <h5>{{ branch_staff_count }}</h5>
+                            <p class="small text-muted">Nhân viên</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Orders and Top Products -->
+<div class="row">
+    <div class="col-xl-6 col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Đơn hàng gần đây</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="recentOrdersTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Khách hàng</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Xem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.full_name }}</td>
+                                <td>{{ order.total }}</td>
+                                <td><span class="badge bg-{{ order.get_status_color }}">{{ order.get_status_display }}</span></td>
+                                <td>
+                                    <a href="/sales/orders/{{ order.id }}/" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Không có đơn hàng nào</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6 col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Sản phẩm bán chạy</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="topProductsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Số lượng bán</th>
+                                <th>Doanh thu</th>
+                                <th>Tồn kho</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail me-2" style="width: 40px; height: 40px;">
+                                        {% else %}
+                                        <div class="bg-light me-2" style="width: 40px; height: 40px;"></div>
+                                        {% endif %}
+                                        <span>{{ product.name }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ product.quantity_sold }}</td>
+                                <td>{{ product.revenue }}</td>
+                                <td>{{ product.current_stock }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Point of Sale Shortcuts -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Truy cập nhanh</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="/sales/pos/" class="btn btn-primary btn-block py-4">
+                            <i class="fas fa-cash-register fa-3x mb-3"></i><br>
+                            Bán hàng (POS)
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="/sales/customers/add/" class="btn btn-success btn-block py-4">
+                            <i class="fas fa-user-plus fa-3x mb-3"></i><br>
+                            Thêm khách hàng
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="/sales/products/" class="btn btn-info btn-block py-4">
+                            <i class="fas fa-boxes fa-3x mb-3"></i><br>
+                            Xem sản phẩm
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="/sales/returns/" class="btn btn-warning btn-block py-4">
+                            <i class="fas fa-undo fa-3x mb-3"></i><br>
+                            Xử lý trả hàng
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Sales Performance Chart
+    var ctx = document.getElementById('salesPerformanceChart').getContext('2d');
+    var salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_dates|safe|default:"['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']" }},
+            datasets: [{
+                label: 'Doanh số (VNĐ)',
+                data: {{ sales_data|safe|default:"[0, 0, 0, 0, 0, 0, 0]" }},
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

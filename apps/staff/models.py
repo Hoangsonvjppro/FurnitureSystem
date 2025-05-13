@@ -80,4 +80,65 @@ class Performance(models.Model):
     def achievement_percentage(self):
         if self.sales_target > 0:
             return (self.sales_achieved / self.sales_target) * 100
-        return 0 
+        return 0
+
+
+class EmployeeEvaluation(models.Model):
+    RATING_CHOICES = (
+        (1, 'Kém'),
+        (2, 'Trung bình'),
+        (3, 'Khá'),
+        (4, 'Tốt'),
+        (5, 'Xuất sắc'),
+    )
+    
+    staff = models.ForeignKey(StaffProfile, on_delete=models.CASCADE, related_name='evaluations', verbose_name="Nhân viên")
+    evaluator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='evaluations_given', verbose_name="Người đánh giá")
+    evaluation_date = models.DateField(default=timezone.now, verbose_name="Ngày đánh giá")
+    period = models.CharField(max_length=7, verbose_name="Kỳ đánh giá")  # Format: MM/YYYY
+    
+    # Các tiêu chí đánh giá
+    work_quality = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Chất lượng công việc")
+    work_quantity = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Số lượng công việc")
+    punctuality = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Đúng giờ")
+    initiative = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Sáng kiến")
+    teamwork = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Làm việc nhóm")
+    communication = models.PositiveSmallIntegerField(choices=RATING_CHOICES, verbose_name="Kỹ năng giao tiếp")
+    
+    strengths = models.TextField(blank=True, verbose_name="Điểm mạnh")
+    areas_for_improvement = models.TextField(blank=True, verbose_name="Điểm cần cải thiện")
+    goals_for_next_period = models.TextField(blank=True, verbose_name="Mục tiêu kỳ tới")
+    additional_comments = models.TextField(blank=True, verbose_name="Nhận xét thêm")
+    
+    # Trạng thái phiếu đánh giá
+    is_completed = models.BooleanField(default=False, verbose_name="Đã hoàn thành")
+    is_acknowledged = models.BooleanField(default=False, verbose_name="Đã xác nhận")
+    
+    class Meta:
+        verbose_name = "Đánh giá nhân viên"
+        verbose_name_plural = "Đánh giá nhân viên"
+        unique_together = ('staff', 'evaluator', 'evaluation_date')
+    
+    def __str__(self):
+        return f"Đánh giá {self.staff.user.get_full_name()} - {self.period}"
+    
+    @property
+    def overall_rating(self):
+        """Tính điểm đánh giá trung bình"""
+        total = (self.work_quality + self.work_quantity + self.punctuality + 
+                self.initiative + self.teamwork + self.communication)
+        return round(total / 6, 1)
+    
+    def get_overall_rating_display(self):
+        """Hiển thị xếp loại dựa trên điểm trung bình"""
+        rating = self.overall_rating
+        if rating >= 4.5:
+            return "Xuất sắc"
+        elif rating >= 3.5:
+            return "Tốt"
+        elif rating >= 2.5:
+            return "Khá"
+        elif rating >= 1.5:
+            return "Trung bình"
+        else:
+            return "Kém" 

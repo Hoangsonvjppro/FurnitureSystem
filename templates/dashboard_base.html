@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hệ thống quản lý nội thất{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="active">
+            <div class="sidebar-header">
+                <h3>Furniture System</h3>
+                <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo img-fluid">
+            </div>
+
+            <ul class="list-unstyled components">
+                {% if user.is_superuser %}
+                <!-- Admin Navigation -->
+                <li class="nav-item {% if request.path == '/admin/dashboard/' %}active{% endif %}">
+                    <a href="/admin/dashboard/" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#userSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                        <i class="fas fa-users"></i> Người dùng
+                    </a>
+                    <ul class="collapse list-unstyled" id="userSubmenu">
+                        <li><a href="/admin/users/"><i class="fas fa-list"></i> Danh sách</a></li>
+                        <li><a href="/admin/users/add/"><i class="fas fa-user-plus"></i> Thêm mới</a></li>
+                        <li><a href="/admin/permissions/"><i class="fas fa-lock"></i> Phân quyền</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/settings/"><i class="fas fa-cogs"></i> Cấu hình</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/reports/"><i class="fas fa-chart-line"></i> Báo cáo</a>
+                </li>
+                
+                {% elif user.is_branch_manager %}
+                <!-- Branch Manager Navigation -->
+                <li class="nav-item {% if request.path == '/branch-manager/dashboard/' %}active{% endif %}">
+                    <a href="/branch-manager/dashboard/" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/branch-manager/staff/"><i class="fas fa-user-tie"></i> Nhân viên</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/branch-manager/inventory/"><i class="fas fa-warehouse"></i> Kho hàng</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/branch-manager/sales/"><i class="fas fa-chart-bar"></i> Doanh số</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/branch-manager/approvals/"><i class="fas fa-check-circle"></i> Phê duyệt</a>
+                </li>
+                
+                {% elif user.is_sales_staff %}
+                <!-- Sales Staff Navigation -->
+                <li class="nav-item {% if request.path == '/sales/dashboard/' %}active{% endif %}">
+                    <a href="/sales/dashboard/" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/sales/pos/"><i class="fas fa-cash-register"></i> Điểm bán hàng</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/sales/orders/"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/sales/customers/"><i class="fas fa-user-friends"></i> Khách hàng</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/sales/products/"><i class="fas fa-box"></i> Sản phẩm</a>
+                </li>
+                
+                {% elif user.is_inventory_staff %}
+                <!-- Inventory Staff Navigation -->
+                <li class="nav-item {% if request.path == '/inventory/dashboard/' %}active{% endif %}">
+                    <a href="/inventory/dashboard/" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/inventory/inventory/"><i class="fas fa-boxes"></i> Kho hàng</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/inventory/stock-in/"><i class="fas fa-truck-loading"></i> Nhập kho</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/inventory/stock-out/"><i class="fas fa-shipping-fast"></i> Xuất kho</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/inventory/transfers/"><i class="fas fa-exchange-alt"></i> Chuyển kho</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/inventory/returns/"><i class="fas fa-undo"></i> Hàng trả về</a>
+                </li>
+                {% endif %}
+                
+                <!-- Common Navigation Items -->
+                <li class="nav-item">
+                    <a href="/" target="_blank"><i class="fas fa-globe"></i> Xem website</a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+            </div>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-primary">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="me-2">{{ user.get_full_name }}</span>
+                                {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" alt="User Avatar" class="avatar rounded-circle">
+                                {% else %}
+                                <i class="fas fa-user-circle fa-lg"></i>
+                                {% endif %}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/profile/"><i class="fas fa-user me-2"></i>Hồ sơ</a></li>
+                                <li><a class="dropdown-item" href="/profile/password/"><i class="fas fa-key me-2"></i>Đổi mật khẩu</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid py-4">
+                {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="page-header mb-4">
+                    <h1 class="h2">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <div class="page-actions">
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                </div>
+                
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap & jQuery JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script>
+        $(document).ready(function() {
+            // Toggle sidebar
+            $('#sidebarCollapse').on('click', function() {
+                $('#sidebar').toggleClass('active');
+            });
+            
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

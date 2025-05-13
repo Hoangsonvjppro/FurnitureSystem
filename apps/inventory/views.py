@@ -5,13 +5,456 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
-from django.db.models import Q, Sum, F, ExpressionWrapper, FloatField, Case, When, Value
+from django.db.models import Q, Sum, F, ExpressionWrapper, FloatField, Case, When, Value, Count
 from django.db import transaction
 
 from apps.inventory.models import Stock, StockMovement, Inventory, InventoryItem
 from apps.inventory.forms import StockForm, StockMovementForm, InventoryForm, InventoryItemForm
 from apps.products.models import Product, ProductVariant
 from apps.branches.models import Branch
+
+
+@login_required
+def inventory_dashboard(request):
+    """Dashboard view for inventory staff"""
+    today = timezone.now().date()
+    
+    # Get counts for today's stock movements
+    stock_ins_today = StockMovement.objects.filter(
+        performed_at__date=today,
+        movement_type='in'
+    ).count()
+    
+    stock_outs_today = StockMovement.objects.filter(
+        performed_at__date=today,
+        movement_type='out'
+    ).count()
+    
+    # Total products count
+    total_products = Stock.objects.values('product').distinct().count()
+    
+    # Low stock items
+    low_stock_count = Stock.objects.filter(quantity__lte=F('min_quantity')).count()
+    low_stock_products = Stock.objects.filter(quantity__lte=F('min_quantity')).select_related('product', 'variant', 'category')[:10]
+    
+    # Pending orders that need to be fulfilled
+    # Adjust this query based on your actual model relationships
+    pending_orders = []  # Replace with actual query
+    
+    # Get inventory by category for chart
+    category_data = Stock.objects.values('product__category__name').annotate(
+        count=Count('id'),
+        total_quantity=Sum('quantity')
+    ).order_by('-total_quantity')
+    
+    category_names = [item['product__category__name'] for item in category_data]
+    category_counts = [item['total_quantity'] for item in category_data]
+    
+    # Recent activities (stock movements)
+    recent_activities = StockMovement.objects.all().order_by('-performed_at')[:10]
+    
+    for activity in recent_activities:
+        # Assign icon and color based on movement type
+        if activity.movement_type == 'in':
+            activity.icon = 'fa-truck-loading'
+            activity.type_color = 'success'
+        elif activity.movement_type == 'out':
+            activity.icon = 'fa-shipping-fast'
+            activity.type_color = 'primary'
+        elif activity.movement_type == 'transfer':
+            activity.icon = 'fa-exchange-alt'
+            activity.type_color = 'info'
+        elif activity.movement_type == 'adjustment':
+            activity.icon = 'fa-clipboard-check'
+            activity.type_color = 'warning'
+        else:
+            activity.icon = 'fa-box'
+            activity.type_color = 'secondary'
+    
+    context = {
+        'total_products': total_products,
+        'stock_ins_today': stock_ins_today,
+        'stock_outs_today': stock_outs_today,
+        'low_stock_count': low_stock_count,
+        'low_stock_products': low_stock_products,
+        'pending_orders': pending_orders,
+        'recent_activities': recent_activities,
+        'category_names': category_names,
+        'category_counts': category_counts,
+    }
+    
+    return render(request, 'inventory/inventory_dashboard.html', context)
+
+
+@login_required
+def stock_list(request):
+    """View for listing all stock items"""
+    stock_items = Stock.objects.all()
+    
+    # Add filtering logic if needed
+    search_query = request.GET.get('search', '')
+    if search_query:
+        stock_items = stock_items.filter(
+            Q(product__name__icontains=search_query) |
+            Q(product__sku__icontains=search_query)
+        )
+    
+    context = {
+        'stock_items': stock_items,
+        'search_query': search_query
+    }
+    
+    return render(request, 'inventory/stock_list.html', context)
+
+
+@login_required
+def stock_detail(request, stock_id):
+    """View for showing stock details"""
+    stock = get_object_or_404(Stock, id=stock_id)
+    
+    # Get stock movement history
+    movements = StockMovement.objects.filter(
+        product=stock.product,
+        branch=stock.branch
+    ).order_by('-performed_at')[:20]
+    
+    context = {
+        'stock': stock,
+        'movements': movements
+    }
+    
+    return render(request, 'inventory/stock_detail.html', context)
+
+
+@login_required
+def stock_update(request, stock_id):
+    """View for updating stock details"""
+    stock = get_object_or_404(Stock, id=stock_id)
+    
+    if request.method == 'POST':
+        form = StockForm(request.POST, instance=stock)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Stock information updated successfully.')
+            return redirect('inventory:stock_detail', stock_id=stock.id)
+    else:
+        form = StockForm(instance=stock)
+    
+    context = {
+        'form': form,
+        'stock': stock
+    }
+    
+    return render(request, 'inventory/stock_form.html', context)
+
+
+@login_required
+def low_stock(request):
+    """View for showing low stock items"""
+    low_stock_items = Stock.objects.filter(quantity__lte=F('min_quantity'))
+    
+    context = {
+        'low_stock_items': low_stock_items
+    }
+    
+    return render(request, 'inventory/low_stock.html', context)
+
+
+@login_required
+def receiving_list(request):
+    """View for listing receiving/stock-in records"""
+    receiving_items = StockMovement.objects.filter(movement_type='in').order_by('-performed_at')
+    
+    context = {
+        'receiving_items': receiving_items
+    }
+    
+    return render(request, 'inventory/receiving_list.html', context)
+
+
+@login_required
+def receiving_create(request):
+    """View for creating new receiving/stock-in record"""
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {}
+    
+    return render(request, 'inventory/receiving_form.html', context)
+
+
+@login_required
+def receiving_detail(request, receiving_id):
+    """View for showing receiving/stock-in details"""
+    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='in')
+    
+    context = {
+        'movement': movement
+    }
+    
+    return render(request, 'inventory/receiving_detail.html', context)
+
+
+@login_required
+def receiving_update(request, receiving_id):
+    """View for updating receiving/stock-in record"""
+    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='in')
+    
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {
+        'movement': movement
+    }
+    
+    return render(request, 'inventory/receiving_form.html', context)
+
+
+@login_required
+def receiving_complete(request, receiving_id):
+    """View for completing receiving/stock-in process"""
+    movement = get_object_or_404(StockMovement, id=receiving_id, movement_type='in')
+    
+    # Process completion logic
+    
+    return redirect('inventory:receiving_detail', receiving_id=receiving_id)
+
+
+@login_required
+def shipping_list(request):
+    """View for listing shipping/stock-out records"""
+    shipping_items = StockMovement.objects.filter(movement_type='out').order_by('-performed_at')
+    
+    context = {
+        'shipping_items': shipping_items
+    }
+    
+    return render(request, 'inventory/shipping_list.html', context)
+
+
+@login_required
+def shipping_create(request):
+    """View for creating new shipping/stock-out record"""
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {}
+    
+    return render(request, 'inventory/shipping_form.html', context)
+
+
+@login_required
+def shipping_detail(request, shipping_id):
+    """View for showing shipping/stock-out details"""
+    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='out')
+    
+    context = {
+        'movement': movement
+    }
+    
+    return render(request, 'inventory/shipping_detail.html', context)
+
+
+@login_required
+def shipping_update(request, shipping_id):
+    """View for updating shipping/stock-out record"""
+    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='out')
+    
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {
+        'movement': movement
+    }
+    
+    return render(request, 'inventory/shipping_form.html', context)
+
+
+@login_required
+def shipping_complete(request, shipping_id):
+    """View for completing shipping/stock-out process"""
+    movement = get_object_or_404(StockMovement, id=shipping_id, movement_type='out')
+    
+    # Process completion logic
+    
+    return redirect('inventory:shipping_detail', shipping_id=shipping_id)
+
+
+@login_required
+def transfer_list(request):
+    """View for listing transfer records"""
+    transfer_items = StockMovement.objects.filter(movement_type='transfer').order_by('-performed_at')
+    
+    context = {
+        'transfer_items': transfer_items
+    }
+    
+    return render(request, 'inventory/transfer_list.html', context)
+
+
+@login_required
+def transfer_create(request):
+    """View for creating new transfer record"""
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {}
+    
+    return render(request, 'inventory/transfer_form.html', context)
+
+
+@login_required
+def transfer_detail(request, transfer_id):
+    """View for showing transfer details"""
+    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='transfer')
+    
+    context = {
+        'movement': movement
+    }
+    
+    return render(request, 'inventory/transfer_detail.html', context)
+
+
+@login_required
+def transfer_update(request, transfer_id):
+    """View for updating transfer record"""
+    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='transfer')
+    
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {
+        'movement': movement
+    }
+    
+    return render(request, 'inventory/transfer_form.html', context)
+
+
+@login_required
+def transfer_complete(request, transfer_id):
+    """View for completing transfer process"""
+    movement = get_object_or_404(StockMovement, id=transfer_id, movement_type='transfer')
+    
+    # Process completion logic
+    
+    return redirect('inventory:transfer_detail', transfer_id=transfer_id)
+
+
+@login_required
+def inventory_audit(request):
+    """View for inventory audit list"""
+    audits = Inventory.objects.all().order_by('-created_at')
+    
+    context = {
+        'audits': audits
+    }
+    
+    return render(request, 'inventory/audit_list.html', context)
+
+
+@login_required
+def audit_create(request):
+    """View for creating new audit"""
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {}
+    
+    return render(request, 'inventory/audit_form.html', context)
+
+
+@login_required
+def audit_detail(request, audit_id):
+    """View for showing audit details"""
+    audit = get_object_or_404(Inventory, id=audit_id)
+    
+    context = {
+        'audit': audit
+    }
+    
+    return render(request, 'inventory/audit_detail.html', context)
+
+
+@login_required
+def audit_update(request, audit_id):
+    """View for updating audit"""
+    audit = get_object_or_404(Inventory, id=audit_id)
+    
+    if request.method == 'POST':
+        # Process form
+        pass
+    
+    context = {
+        'audit': audit
+    }
+    
+    return render(request, 'inventory/audit_form.html', context)
+
+
+@login_required
+def audit_complete(request, audit_id):
+    """View for completing audit process"""
+    audit = get_object_or_404(Inventory, id=audit_id)
+    
+    # Process completion logic
+    
+    return redirect('inventory:audit_detail', audit_id=audit_id)
+
+
+@login_required
+def inventory_reports(request):
+    """View for inventory reports"""
+    context = {}
+    
+    return render(request, 'inventory/reports.html', context)
+
+
+@login_required
+def movement_report(request):
+    """View for inventory movement report"""
+    movements = StockMovement.objects.all().order_by('-performed_at')
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    if start_date:
+        movements = movements.filter(performed_at__date__gte=start_date)
+    if end_date:
+        movements = movements.filter(performed_at__date__lte=end_date)
+    
+    context = {
+        'movements': movements,
+        'start_date': start_date,
+        'end_date': end_date
+    }
+    
+    return render(request, 'inventory/movement_report.html', context)
+
+
+@login_required
+def turnover_report(request):
+    """View for inventory turnover report"""
+    # Calculate turnover for products
+    
+    context = {}
+    
+    return render(request, 'inventory/turnover_report.html', context)
+
+
+@login_required
+def staff_profile(request):
+    """View for staff profile"""
+    context = {}
+    
+    return render(request, 'inventory/staff_profile.html', context)
 
 
 class StockListView(LoginRequiredMixin, ListView):

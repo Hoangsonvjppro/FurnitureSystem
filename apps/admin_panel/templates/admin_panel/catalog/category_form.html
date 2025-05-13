@@ -1,0 +1,80 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ category.id|yesno:"Chỉnh sửa,Thêm mới" }} danh mục sản phẩm</h3>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="name">Tên danh mục <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ category.name|default:'' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="slug">Đường dẫn tĩnh (slug)</label>
+                <input type="text" class="form-control" id="slug" name="slug" value="{{ category.slug|default:'' }}">
+                <small class="form-text text-muted">Nếu để trống, hệ thống sẽ tự động tạo từ tên danh mục</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="parent">Danh mục cha</label>
+                <select class="form-control" id="parent" name="parent">
+                    <option value="">Không có danh mục cha</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if category.parent.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Mô tả</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ category.description|default:'' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="image">Hình ảnh</label>
+                {% if category.image %}
+                <div class="mb-2">
+                    <img src="{{ category.image.url }}" alt="{{ category.name }}" class="img-thumbnail" style="max-height: 100px;">
+                </div>
+                {% endif %}
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="image" name="image">
+                    <label class="custom-file-label" for="image">Chọn hình ảnh...</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_active" name="is_active" {% if category.is_active|default:True %}checked{% endif %}>
+                    <label class="custom-control-label" for="is_active">Kích hoạt</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_featured" name="is_featured" {% if category.is_featured %}checked{% endif %}>
+                    <label class="custom-control-label" for="is_featured">Hiển thị nổi bật</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="display_order">Thứ tự hiển thị</label>
+                <input type="number" class="form-control" id="display_order" name="display_order" value="{{ category.display_order|default:0 }}">
+                <small class="form-text text-muted">Số thấp hơn sẽ hiển thị trước</small>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Lưu danh mục</button>
+                <a href="{% url 'admin_panel:category_list' %}" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

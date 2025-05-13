@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Phiếu đánh giá nhân viên</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            margin: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin-bottom: 5px;
+            color: #1a5276;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 10px;
+        }
+        .info-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .info-section h2 {
+            margin-top: 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            color: #1a5276;
+            font-size: 18px;
+        }
+        .info-item {
+            margin-bottom: 8px;
+        }
+        .info-item strong {
+            display: inline-block;
+            min-width: 150px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .rating-row {
+            background-color: #f9f9f9;
+        }
+        .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+        .signature-line {
+            margin-top: 70px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+        }
+        .overall-rating {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PHIẾU ĐÁNH GIÁ NHÂN VIÊN</h1>
+        <p>Kỳ đánh giá: {{ evaluation.period }}</p>
+    </div>
+
+    <div class="info-section">
+        <h2>Thông tin nhân viên</h2>
+        <div class="info-item">
+            <strong>Họ và tên:</strong> {{ evaluation.staff.user.get_full_name }}
+        </div>
+        <div class="info-item">
+            <strong>Mã nhân viên:</strong> {{ evaluation.staff.staff_id }}
+        </div>
+        <div class="info-item">
+            <strong>Vị trí:</strong> {{ evaluation.staff.get_role_display }}
+        </div>
+        <div class="info-item">
+            <strong>Chi nhánh:</strong> {{ evaluation.staff.branch.name|default:"Chưa phân công" }}
+        </div>
+        <div class="info-item">
+            <strong>Ngày đánh giá:</strong> {{ evaluation.evaluation_date|date:"d/m/Y" }}
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>Kết quả đánh giá</h2>
+        <table>
+            <tr>
+                <th style="width: 50%;">Tiêu chí</th>
+                <th>Điểm đánh giá</th>
+                <th>Ghi chú</th>
+            </tr>
+            <tr class="rating-row">
+                <td>Chất lượng công việc</td>
+                <td>{{ evaluation.work_quality }} - {{ evaluation.get_work_quality_display }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Số lượng công việc</td>
+                <td>{{ evaluation.work_quantity }} - {{ evaluation.get_work_quantity_display }}</td>
+                <td></td>
+            </tr>
+            <tr class="rating-row">
+                <td>Đúng giờ</td>
+                <td>{{ evaluation.punctuality }} - {{ evaluation.get_punctuality_display }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Sáng kiến</td>
+                <td>{{ evaluation.initiative }} - {{ evaluation.get_initiative_display }}</td>
+                <td></td>
+            </tr>
+            <tr class="rating-row">
+                <td>Làm việc nhóm</td>
+                <td>{{ evaluation.teamwork }} - {{ evaluation.get_teamwork_display }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Kỹ năng giao tiếp</td>
+                <td>{{ evaluation.communication }} - {{ evaluation.get_communication_display }}</td>
+                <td></td>
+            </tr>
+        </table>
+
+        <div class="overall-rating">
+            Đánh giá tổng thể: {{ evaluation.overall_rating }} - {{ evaluation.get_overall_rating_display }}
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>Nhận xét chi tiết</h2>
+        
+        <h3>Điểm mạnh</h3>
+        <p>{{ evaluation.strengths|default:"Không có thông tin" }}</p>
+        
+        <h3>Điểm cần cải thiện</h3>
+        <p>{{ evaluation.areas_for_improvement|default:"Không có thông tin" }}</p>
+        
+        <h3>Mục tiêu kỳ tới</h3>
+        <p>{{ evaluation.goals_for_next_period|default:"Không có thông tin" }}</p>
+        
+        <h3>Nhận xét thêm</h3>
+        <p>{{ evaluation.additional_comments|default:"Không có thông tin" }}</p>
+    </div>
+
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line">Người đánh giá</div>
+            <p>{{ evaluation.evaluator.get_full_name }}</p>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">Nhân viên xác nhận</div>
+            <p>{{ evaluation.staff.user.get_full_name }}</p>
+        </div>
+    </div>
+</body>
+</html> 

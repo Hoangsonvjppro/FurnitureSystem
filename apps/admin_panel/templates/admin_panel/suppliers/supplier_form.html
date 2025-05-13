@@ -1,0 +1,120 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ supplier.id|yesno:"Chỉnh sửa,Thêm mới" }} nhà cung cấp</h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="name">Tên nhà cung cấp <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ supplier.name|default:'' }}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact_person">Người liên hệ</label>
+                        <input type="text" class="form-control" id="contact_person" name="contact_person" value="{{ supplier.contact_person|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ supplier.email|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Số điện thoại <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="phone" name="phone" value="{{ supplier.phone|default:'' }}" required>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="address">Địa chỉ</label>
+                        <textarea class="form-control" id="address" name="address" rows="3">{{ supplier.address|default:'' }}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="website">Website</label>
+                        <input type="url" class="form-control" id="website" name="website" value="{{ supplier.website|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tax_code">Mã số thuế</label>
+                        <input type="text" class="form-control" id="tax_code" name="tax_code" value="{{ supplier.tax_code|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="note">Ghi chú</label>
+                        <textarea class="form-control" id="note" name="note" rows="2">{{ supplier.note|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_active" name="is_active" {% if supplier.is_active|default:True %}checked{% endif %}>
+                    <label class="custom-control-label" for="is_active">Đang hoạt động</label>
+                </div>
+            </div>
+            
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">Lưu nhà cung cấp</button>
+                <a href="{% url 'admin_panel:supplier_list' %}" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if supplier.id %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">Lịch sử mua hàng</h3>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Mã đơn hàng</th>
+                    <th>Ngày tạo</th>
+                    <th>Tổng tiền</th>
+                    <th>Đã thanh toán</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in purchase_orders %}
+                <tr>
+                    <td>{{ po.reference }}</td>
+                    <td>{{ po.created_at|date:"d/m/Y" }}</td>
+                    <td>{{ po.total_amount|floatformat:0 }} VNĐ</td>
+                    <td>{{ po.paid_amount|floatformat:0 }} VNĐ</td>
+                    <td>
+                        {% if po.status == 'completed' %}
+                            <span class="badge badge-success">Hoàn thành</span>
+                        {% elif po.status == 'pending' %}
+                            <span class="badge badge-warning">Đang chờ</span>
+                        {% elif po.status == 'cancelled' %}
+                            <span class="badge badge-danger">Đã hủy</span>
+                        {% else %}
+                            <span class="badge badge-info">{{ po.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Chưa có đơn hàng nào</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

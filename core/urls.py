@@ -14,26 +14,38 @@ admin.autodiscover()
 admin.site.login = auth_views.LoginView.as_view(template_name='account/admin_login.html')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Admin dashboard (Django default admin)
+    path('django-admin/', admin.site.urls),
     
-    # Authentication
-    path('accounts/', include('allauth.urls')),
+    # Custom admin panel - chuyến hướng tất cả /admin/ tới admin-panel
+    path('admin-panel/', include('apps.admin_panel.urls')),
+    path('admin/', RedirectView.as_view(url='/admin-panel/', permanent=True)),
     
-    # API
-    path('api/', include('apps.api.urls')),
-    
-    # App URLs
+    # Khu vực dành cho khách hàng 
+    path('', RedirectView.as_view(url='/products/', permanent=True), name='home'),
     path('products/', include('apps.products.urls')),
     path('cart/', include('apps.cart.urls')),
     path('orders/', include('apps.orders.urls')),
-    path('inventory/', include('apps.inventory.urls')),
-    path('suppliers/', include('apps.suppliers.urls')),
-    path('branches/', include('apps.branches.urls')),
-    path('reports/', include('apps.reports.urls')),
-    path('staff/', include('apps.staff.urls')),
+    path('accounts/', include('allauth.urls')),
+    path('profile/', include('apps.accounts.customer_urls')),
     
-    # Home page - Redirect to products list
-    path('', RedirectView.as_view(pattern_name='products:product_list'), name='home'),
+    # Khu vực dành cho nhân viên bán hàng
+    path('sales/', include('apps.staff.urls')),
+    
+    # Khu vực dành cho nhân viên kho
+    path('inventory/', include('apps.inventory.staff_urls')),
+    
+    # Khu vực dành cho quản lý cửa hàng
+    path('branch-manager/', include('apps.branches.manager_urls')),
+    
+    # Báo cáo
+    path('reports/', include('apps.reports.urls')),
+    
+    # API endpoints
+    path('api/', include('apps.api.urls')),
+    
+    # Debug toolbar
+    path('__debug__/', include('debug_toolbar.urls')),
 ]
 
 # Debug toolbar

@@ -1,0 +1,179 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Quản lý người dùng</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'admin_panel:dashboard' %}">Tổng quan</a></li>
+        <li class="breadcrumb-item active">Quản lý người dùng</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-users me-1"></i>
+                Danh sách người dùng
+            </div>
+            <a href="{% url 'admin_panel:user_create' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Thêm người dùng
+            </a>
+        </div>
+        <div class="card-body">
+            <!-- Filter -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <form method="get" class="d-flex">
+                        <select name="role" class="form-select me-2" onchange="this.form.submit()">
+                            <option value="">Tất cả vai trò</option>
+                            <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Quản trị viên</option>
+                            <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Nhân viên hệ thống</option>
+                            <option value="branch_manager" {% if role_filter == 'branch_manager' %}selected{% endif %}>Quản lý chi nhánh</option>
+                            <option value="sales" {% if role_filter == 'sales' %}selected{% endif %}>Nhân viên bán hàng</option>
+                            <option value="inventory" {% if role_filter == 'inventory' %}selected{% endif %}>Nhân viên kho</option>
+                            <option value="customer" {% if role_filter == 'customer' %}selected{% endif %}>Khách hàng</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary">Lọc</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" class="d-flex">
+                        <input type="text" name="search" class="form-control me-2" placeholder="Tìm kiếm người dùng..." value="{{ request.GET.search|default:'' }}">
+                        <button type="submit" class="btn btn-outline-primary">Tìm</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- User Table -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên</th>
+                            <th>Email</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tham gia</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>
+                                {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}" class="avatar-sm rounded-circle me-2" width="32" height="32">
+                                {% else %}
+                                <i class="fas fa-user-circle me-2"></i>
+                                {% endif %}
+                                {{ user.get_full_name|default:user.username }}
+                            </td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                {% if user.is_superuser %}
+                                <span class="badge bg-danger">Quản trị viên</span>
+                                {% elif user.is_branch_manager %}
+                                <span class="badge bg-info">Quản lý chi nhánh</span>
+                                {% elif user.is_sales_staff %}
+                                <span class="badge bg-primary">Nhân viên bán hàng</span>
+                                {% elif user.is_inventory_staff %}
+                                <span class="badge bg-warning">Nhân viên kho</span>
+                                {% elif user.is_staff %}
+                                <span class="badge bg-secondary">Nhân viên hệ thống</span>
+                                {% else %}
+                                <span class="badge bg-success">Khách hàng</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                <span class="badge bg-success">Đang hoạt động</span>
+                                {% else %}
+                                <span class="badge bg-danger">Đã khóa</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'admin_panel:user_detail' user.id %}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'admin_panel:user_edit' user.id %}" class="btn btn-sm btn-outline-success" title="Chỉnh sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'admin_panel:user_permissions' user.id %}" class="btn btn-sm btn-outline-warning" title="Phân quyền">
+                                        <i class="fas fa-key"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i> Không tìm thấy người dùng nào.
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if users.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if users.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if role_filter %}&role={{ role_filter }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">&laquo;</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ users.previous_page_number }}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Trước</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">&laquo;</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">Trước</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in users.paginator.page_range %}
+                        {% if users.number == i %}
+                        <li class="page-item active">
+                            <a class="page-link" href="#">{{ i }}</a>
+                        </li>
+                        {% elif i > users.number|add:'-3' and i < users.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if users.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ users.next_page_number }}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Tiếp</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ users.paginator.num_pages }}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">&raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">Tiếp</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

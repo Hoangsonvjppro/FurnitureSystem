@@ -1,0 +1,152 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card card-primary card-outline">
+            <div class="card-body box-profile">
+                <div class="text-center">
+                    {% if user_obj.profile_image %}
+                    <img class="profile-user-img img-fluid img-circle" src="{{ user_obj.profile_image.url }}" alt="User profile picture">
+                    {% else %}
+                    <img class="profile-user-img img-fluid img-circle" src="/static/img/default-user.png" alt="Default user">
+                    {% endif %}
+                </div>
+
+                <h3 class="profile-username text-center">
+                    {% if user_obj.get_full_name %}
+                        {{ user_obj.get_full_name }}
+                    {% else %}
+                        {{ user_obj.username }}
+                    {% endif %}
+                </h3>
+
+                <p class="text-muted text-center">
+                    {% if user_obj.is_superuser %}Admin{% elif user_obj.is_staff %}Nhân viên{% else %}Khách hàng{% endif %}
+                </p>
+
+                <ul class="list-group list-group-unbordered mb-3">
+                    <li class="list-group-item">
+                        <b>Email</b> <a class="float-right">{{ user_obj.email }}</a>
+                    </li>
+                    <li class="list-group-item">
+                        <b>Tài khoản tạo ngày</b> <a class="float-right">{{ user_obj.date_joined|date:"d/m/Y" }}</a>
+                    </li>
+                    <li class="list-group-item">
+                        <b>Đăng nhập gần nhất</b> <a class="float-right">{{ user_obj.last_login|date:"d/m/Y H:i"|default:"Chưa đăng nhập" }}</a>
+                    </li>
+                    <li class="list-group-item">
+                        <b>Trạng thái</b> <a class="float-right">{% if user_obj.is_active %}<span class="badge badge-success">Đang hoạt động</span>{% else %}<span class="badge badge-danger">Bị khóa</span>{% endif %}</a>
+                    </li>
+                </ul>
+
+                <div class="d-flex">
+                    <a href="{% url 'admin_panel:user_edit' user_obj.id %}" class="btn btn-primary flex-grow-1 mr-2">
+                        <i class="fas fa-user-edit"></i> Chỉnh sửa
+                    </a>
+                    <a href="{% url 'admin_panel:user_permissions' user_obj.id %}" class="btn btn-warning flex-grow-1">
+                        <i class="fas fa-key"></i> Phân quyền
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Thông tin chi tiết</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th style="width: 200px">Username</th>
+                        <td>{{ user_obj.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Họ</th>
+                        <td>{{ user_obj.last_name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tên</th>
+                        <td>{{ user_obj.first_name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email</th>
+                        <td>{{ user_obj.email }}</td>
+                    </tr>
+                    <tr>
+                        <th>Phân quyền</th>
+                        <td>
+                            {% if user_obj.is_superuser %}
+                                <span class="badge badge-danger">Admin</span>
+                            {% endif %}
+                            {% if user_obj.is_staff %}
+                                <span class="badge badge-info">Nhân viên</span>
+                            {% endif %}
+                            {% if user_obj.is_branch_manager %}
+                                <span class="badge badge-primary">Quản lý chi nhánh</span>
+                            {% endif %}
+                            {% if user_obj.is_sales_staff %}
+                                <span class="badge badge-success">Nhân viên bán hàng</span>
+                            {% endif %}
+                            {% if user_obj.is_inventory_staff %}
+                                <span class="badge badge-warning">Nhân viên kho</span>
+                            {% endif %}
+                            {% if not user_obj.is_superuser and not user_obj.is_staff and not user_obj.is_branch_manager and not user_obj.is_sales_staff and not user_obj.is_inventory_staff %}
+                                <span class="badge badge-secondary">Khách hàng</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Đơn hàng gần đây</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn hàng</th>
+                            <th>Ngày đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.order_number }}</td>
+                            <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                            <td>{{ order.total|floatformat:0 }} VNĐ</td>
+                            <td>
+                                {% if order.status == 'completed' %}
+                                    <span class="badge badge-success">Hoàn thành</span>
+                                {% elif order.status == 'pending' %}
+                                    <span class="badge badge-warning">Đang xử lý</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge badge-info">Đang giao</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge badge-danger">Đã hủy</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ order.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">Không có đơn hàng nào</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

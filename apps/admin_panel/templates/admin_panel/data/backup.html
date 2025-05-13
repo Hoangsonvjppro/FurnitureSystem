@@ -1,0 +1,84 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Sao lưu dữ liệu hệ thống</h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Sao lưu dữ liệu giúp bạn lưu trữ an toàn dữ liệu và khôi phục khi cần thiết.
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="backup_type">Chọn loại sao lưu</label>
+                <select class="form-control" id="backup_type" name="backup_type">
+                    <option value="full">Sao lưu toàn bộ dữ liệu</option>
+                    <option value="products">Chỉ sao lưu dữ liệu sản phẩm</option>
+                    <option value="orders">Chỉ sao lưu dữ liệu đơn hàng</option>
+                    <option value="customers">Chỉ sao lưu dữ liệu khách hàng</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="backup_name">Tên bản sao lưu</label>
+                <input type="text" class="form-control" id="backup_name" name="backup_name" placeholder="backup_20250512">
+            </div>
+            
+            <div class="form-group">
+                <label for="backup_description">Mô tả</label>
+                <textarea class="form-control" id="backup_description" name="backup_description" rows="3" placeholder="Ghi chú về bản sao lưu này"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="include_media" name="include_media">
+                    <label class="custom-control-label" for="include_media">Bao gồm cả tệp phương tiện (hình ảnh, tệp đính kèm)</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Bắt đầu sao lưu
+                </button>
+            </div>
+        </form>
+        
+        <div class="mt-4">
+            <h5>Lịch sử sao lưu</h5>
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Thời gian</th>
+                        <th>Loại</th>
+                        <th>Kích thước</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>backup_20250510</td>
+                        <td>10/05/2025 10:30</td>
+                        <td>Toàn bộ dữ liệu</td>
+                        <td>25.4 MB</td>
+                        <td>
+                            <button class="btn btn-sm btn-info">
+                                <i class="fas fa-download"></i> Tải về
+                            </button>
+                            <button class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Xóa
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

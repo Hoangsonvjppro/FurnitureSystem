@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Q, Sum
 from django.core.paginator import Paginator
+from django.template.loader import get_template
 
 from apps.orders.models import Order, OrderItem, Payment, Delivery
 from apps.orders.forms import OrderForm, OrderItemForm, PaymentForm, DeliveryForm
@@ -261,6 +262,58 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
     
     def get_success_url(self):
         return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('order_id')})
+
+
+@login_required
+def generate_invoice_pdf(request, pk):
+    """Tạo và in hóa đơn PDF cho đơn hàng"""
+    try:
+        # Import pisa chỉ khi cần sử dụng
+        import pisa
+        
+        order = get_object_or_404(Order, pk=pk)
+        
+        # Kiểm tra quyền hạn - chỉ admin, người tạo đơn hàng hoặc nhân viên bán hàng mới có quyền
+        if not (request.user.is_superuser or request.user == order.created_by or 
+                request.user.is_sales_staff or request.user.is_branch_manager):
+            messages.error(request, 'Bạn không có quyền thực hiện chức năng này.')
+            return redirect('orders:order_detail', pk=order.pk)
+        
+        # Lấy các thông tin cần thiết
+        order_items = order.items.all()
+        payments = order.payments.all()
+        
+        # Tạo context cho template
+        context = {
+            'order': order,
+            'order_items': order_items,
+            'payments': payments,
+            'current_date': timezone.now(),
+            'staff_name': request.user.get_full_name()
+        }
+        
+        # Tạo PDF từ template
+        template = get_template('orders/invoice_pdf.html')
+        html = template.render(context)
+        
+        # Tạo response với content type là PDF
+        response = HttpResponse(content_type='application/pdf')
+        
+        # Đặt filename cho tệp PDF khi tải xuống
+        filename = f"invoice-{order.order_number}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Tạo PDF sử dụng xhtml2pdf
+        pisa_status = pisa.CreatePDF(html, dest=response)
+        
+        # Trả về error nếu có lỗi
+        if pisa_status.err:
+            return HttpResponse('Đã xảy ra lỗi khi tạo hóa đơn PDF: %s' % pisa_status.err)
+        
+        return response
+    except ImportError:
+        messages.error(request, 'Không thể tạo file PDF. Thư viện xhtml2pdf không khả dụng.')
+        return redirect('orders:order_detail', pk=pk)
 
 
 class DeliveryUpdateView(LoginRequiredMixin, UpdateView):

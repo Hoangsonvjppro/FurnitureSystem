@@ -61,9 +61,9 @@ class ProductAdmin(admin.ModelAdmin):
 
     def display_price(self, obj):
         if obj.sale_price:
-            return format_html('<span style="text-decoration: line-through;">{:,.0f}đ</span> <span style="color: red;">{:,.0f}đ</span>',
-                             obj.price, obj.sale_price)
-        return format_html('{:,.0f}đ', obj.price)
+            return format_html('<span style="text-decoration: line-through;">{}</span> <span style="color: red;">{}</span>',
+                             f'{int(obj.price):,}đ', f'{int(obj.sale_price):,}đ')
+        return format_html('{:,}đ', int(obj.price))
     display_price.short_description = "Giá"
 
     def display_image(self, obj):
