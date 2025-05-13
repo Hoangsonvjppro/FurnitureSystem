@@ -8,29 +8,23 @@ def sales_staff_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if request.user.is_authenticated:
-            # TEMPORARY FIX: Allow all authenticated users to access sales views
-            return view_func(request, *args, **kwargs)
-            
-            # Original code (commented out):
-            # Explicitly check database field
-            # has_permission = request.user.is_sales_staff
-            
-            # if has_permission:
-            #     return view_func(request, *args, **kwargs)
-            # else:
-            #     # More detailed error message for debugging
-            #     error_msg = f"Bạn không có quyền truy cập khu vực này. Vai trò: {request.user.debug_roles}"
-            #     messages.error(request, error_msg)
+            # Kiểm tra role trong database
+            if request.user.role == 'SALES_STAFF' or request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+            else:
+                # Thông báo lỗi chi tiết
+                error_msg = f"Bạn không có quyền truy cập khu vực này. Vai trò: {request.user.role}"
+                messages.error(request, error_msg)
                 
-            #     # If the user is a different type of staff, redirect appropriately
-            #     if request.user.is_branch_manager:
-            #         return redirect('/branch-manager/')
-            #     elif request.user.is_inventory_staff:
-            #         return redirect('/inventory/')
-            #     elif request.user.is_staff or request.user.is_superuser:
-            #         return redirect('/admin/')
-            #     else:
-            #         return redirect('products:home')
+                # Chuyển hướng dựa trên vai trò
+                if request.user.role == 'MANAGER':
+                    return redirect('/branch-manager/')
+                elif request.user.role == 'INVENTORY_STAFF':
+                    return redirect('/inventory/')
+                elif request.user.is_staff or request.user.is_superuser:
+                    return redirect('/admin-panel/')
+                else:
+                    return redirect('products:home')
         else:
             return redirect('account_login')
     return _wrapped_view
@@ -40,10 +34,11 @@ def inventory_staff_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if request.user.is_authenticated:
-            if request.user.is_inventory_staff:
+            if request.user.role == 'INVENTORY_STAFF' or request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
             else:
-                messages.error(request, "Bạn không có quyền truy cập khu vực này")
+                error_msg = f"Bạn không có quyền truy cập khu vực này. Vai trò: {request.user.role}"
+                messages.error(request, error_msg)
                 return redirect('products:home')
         else:
             return redirect('account_login')
@@ -54,10 +49,11 @@ def branch_manager_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if request.user.is_authenticated:
-            if request.user.is_branch_manager:
+            if request.user.role == 'MANAGER' or request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
             else:
-                messages.error(request, "Bạn không có quyền truy cập khu vực này")
+                error_msg = f"Bạn không có quyền truy cập khu vực này. Vai trò: {request.user.role}"
+                messages.error(request, error_msg)
                 return redirect('products:home')
         else:
             return redirect('account_login')

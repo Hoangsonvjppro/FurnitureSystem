@@ -270,19 +270,10 @@ def user_permissions(request, pk):
         user.is_staff = 'is_staff' in request.POST
         user.is_superuser = 'is_superuser' in request.POST
         
-        # Đảm bảo chỉ có thể chọn một vai trò, đặt mặc định là tất cả đều False
-        user.is_branch_manager = False
-        user.is_sales_staff = False
-        user.is_inventory_staff = False
-        
-        # Kiểm tra vai trò được chọn và chỉ set giá trị true cho một trong ba vai trò
+        # Đặt vai trò (role) dựa trên lựa chọn
         role = request.POST.get('role', '')
-        if role == 'branch_manager':
-            user.is_branch_manager = True
-        elif role == 'sales_staff':
-            user.is_sales_staff = True
-        elif role == 'inventory_staff':
-            user.is_inventory_staff = True
+        if role in dict(User.ROLE_CHOICES).keys():
+            user.role = role
         
         # Lưu thông tin người dùng
         user.save()
@@ -308,6 +299,7 @@ def user_permissions(request, pk):
         'title': f'Phân quyền: {user.get_full_name() or user.username}',
         'user_obj': user,
         'groups': Group.objects.all(),
+        'role_choices': User.ROLE_CHOICES,
     }
     
     return render(request, 'admin_panel/users/user_permissions.html', context)

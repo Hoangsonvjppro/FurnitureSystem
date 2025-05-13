@@ -105,7 +105,7 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
 @login_required
 def create_order_from_cart(request):
     """Tạo đơn hàng từ giỏ hàng"""
-    cart = Cart.objects.get_or_create(user=request.user)[0]
+    cart = Cart.objects.get_or_create(customer=request.user)[0]
     cart_items = CartItem.objects.filter(cart=cart)
     
     if not cart_items.exists():
@@ -130,16 +130,22 @@ def create_order_from_cart(request):
                 OrderItem.objects.create(
                     order=order,
                     product=cart_item.product,
+                    variant=cart_item.variant,
                     price=cart_item.price,
                     quantity=cart_item.quantity,
                     subtotal=cart_item.subtotal
                 )
                 
                 # Cập nhật tồn kho
-                stock = Stock.objects.filter(
-                    product=cart_item.product,
-                    branch=order.branch
-                ).first()
+                stock_filters = {
+                    'product': cart_item.product,
+                    'branch': order.branch
+                }
+                
+                if cart_item.variant:
+                    stock_filters['variant'] = cart_item.variant
+                    
+                stock = Stock.objects.filter(**stock_filters).first()
                 
                 if stock:
                     stock.quantity -= cart_item.quantity

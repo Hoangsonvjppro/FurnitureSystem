@@ -12,6 +12,14 @@ class Stock(models.Model):
         related_name='stocks',
         verbose_name=_("Sản phẩm")
     )
+    variant = models.ForeignKey(
+        'products.ProductVariant',
+        on_delete=models.SET_NULL,
+        related_name='stocks',
+        verbose_name=_("Biến thể"),
+        null=True,
+        blank=True
+    )
     branch = models.ForeignKey(
         'branches.Branch',
         on_delete=models.CASCADE,
@@ -26,7 +34,7 @@ class Stock(models.Model):
     class Meta:
         verbose_name = _("Tồn kho")
         verbose_name_plural = _("Tồn kho")
-        unique_together = ('product', 'branch')
+        unique_together = ('product', 'variant', 'branch')
     
     def __str__(self):
         return f"{self.product.name} - {self.branch.name}: {self.quantity}"
@@ -57,6 +65,14 @@ class StockMovement(models.Model):
         on_delete=models.CASCADE,
         related_name='movements',
         verbose_name=_("Sản phẩm")
+    )
+    variant = models.ForeignKey(
+        'products.ProductVariant',
+        on_delete=models.SET_NULL,
+        related_name='movements',
+        verbose_name=_("Biến thể"),
+        null=True,
+        blank=True
     )
     quantity = models.PositiveIntegerField(_("Số lượng"), validators=[MinValueValidator(1)])
     movement_type = models.CharField(_("Loại chuyển động"), max_length=10, choices=MOVEMENT_TYPES)
@@ -162,6 +178,14 @@ class InventoryItem(models.Model):
         related_name='inventory_items',
         verbose_name=_("Sản phẩm")
     )
+    variant = models.ForeignKey(
+        'products.ProductVariant',
+        on_delete=models.SET_NULL,
+        related_name='inventory_items',
+        verbose_name=_("Biến thể"),
+        null=True,
+        blank=True
+    )
     expected_quantity = models.PositiveIntegerField(_("Số lượng hệ thống"), default=0)
     actual_quantity = models.PositiveIntegerField(_("Số lượng thực tế"), default=0)
     notes = models.TextField(_("Ghi chú"), blank=True)
@@ -169,7 +193,7 @@ class InventoryItem(models.Model):
     class Meta:
         verbose_name = _("Chi tiết kiểm kê")
         verbose_name_plural = _("Chi tiết kiểm kê")
-        unique_together = ('inventory', 'product')
+        unique_together = ('inventory', 'product', 'variant')
     
     def __str__(self):
         return f"{self.product.name}: {self.actual_quantity}/{self.expected_quantity}"

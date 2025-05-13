@@ -52,13 +52,21 @@ class CartItem(models.Model):
         related_name='cart_items',
         verbose_name=_("Sản phẩm")
     )
+    variant = models.ForeignKey(
+        'products.ProductVariant',
+        on_delete=models.SET_NULL,
+        related_name='cart_items',
+        verbose_name=_("Biến thể"),
+        null=True,
+        blank=True
+    )
     quantity = models.PositiveIntegerField(_("Số lượng"), default=1)
     added_at = models.DateTimeField(_("Ngày thêm"), default=timezone.now)
     
     class Meta:
         verbose_name = _("Sản phẩm giỏ hàng")
         verbose_name_plural = _("Sản phẩm giỏ hàng")
-        unique_together = ('cart', 'product')
+        unique_together = ('cart', 'product', 'variant')
     
     def __str__(self):
         return f"{self.product.name} ({self.quantity})"

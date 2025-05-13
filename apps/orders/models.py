@@ -111,6 +111,14 @@ class OrderItem(models.Model):
         related_name='order_items',
         verbose_name=_("Sản phẩm")
     )
+    variant = models.ForeignKey(
+        'products.ProductVariant',
+        on_delete=models.SET_NULL,
+        related_name='order_items',
+        verbose_name=_("Biến thể"),
+        null=True,
+        blank=True
+    )
     quantity = models.PositiveIntegerField(_("Số lượng"))
     price = models.DecimalField(_("Giá bán"), max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(_("Thành tiền"), max_digits=12, decimal_places=2)
