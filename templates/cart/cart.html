@@ -29,7 +29,7 @@
                         {% for item in cart_items %}
                         <tr>
                             <td>
-                                <img src="{{ item.product.get_thumbnail_url|default:'#' }}" alt="{{ item.product.name }}" class="img-thumbnail" style="max-width: 80px;">
+                                <img src="{{ item.product.image.url|default:'#' }}" alt="{{ item.product.name }}" class="img-thumbnail" style="max-width: 80px;">
                             </td>
                             <td>
                                 <h6 class="mb-0">{{ item.product.name }}</h6>
@@ -37,7 +37,7 @@
                                 <small class="text-muted">{{ item.variant.name }}</small>
                                 {% endif %}
                             </td>
-                            <td>{{ item.unit_price|floatformat:0 }} ₫</td>
+                            <td>{{ item.price|floatformat:0 }} ₫</td>
                             <td>
                                 <div class="input-group">
                                     <button class="btn btn-outline-secondary btn-sm quantity-btn" type="button" data-action="decrease" data-item-id="{{ item.id }}">
@@ -49,11 +49,11 @@
                                     </button>
                                 </div>
                             </td>
-                            <td>{{ item.total_price|floatformat:0 }} ₫</td>
+                            <td>{{ item.subtotal|floatformat:0 }} ₫</td>
                             <td>
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-item" data-item-id="{{ item.id }}">
+                                <a href="{% url 'cart:remove_from_cart' item.id %}" class="btn btn-outline-danger btn-sm remove-item" data-item-id="{{ item.id }}">
                                     <i class="fas fa-trash"></i>
-                                </button>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -64,12 +64,12 @@
         <div class="card-footer">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'products:product_list' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i> Tiếp tục mua sắm
                     </a>
-                    <button type="button" class="btn btn-outline-danger ms-2" id="clear-cart">
+                    <a href="{% url 'cart:clear_cart' %}" class="btn btn-outline-danger ms-2" id="clear-cart">
                         <i class="fas fa-trash me-1"></i> Xóa giỏ hàng
-                    </button>
+                    </a>
                 </div>
                 <button type="button" class="btn btn-primary" id="update-cart">
                     <i class="fas fa-sync-alt me-1"></i> Cập nhật giỏ hàng
@@ -85,10 +85,11 @@
                     <h5 class="card-title mb-0">Mã giảm giá</h5>
                 </div>
                 <div class="card-body">
-                    <form>
+                    <form method="post" action="{% url 'cart:cart_detail' %}">
+                        {% csrf_token %}
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Nhập mã giảm giá" name="coupon_code">
-                            <button class="btn btn-outline-primary" type="button">Áp dụng</button>
+                            <button class="btn btn-outline-primary" type="submit">Áp dụng</button>
                         </div>
                     </form>
                 </div>
@@ -104,7 +105,7 @@
                         <tbody>
                             <tr>
                                 <th>Tạm tính:</th>
-                                <td class="text-end">{{ cart_subtotal|floatformat:0 }} ₫</td>
+                                <td class="text-end">{{ cart.total_price|floatformat:0 }} ₫</td>
                             </tr>
                             {% if discount_amount %}
                             <tr>
@@ -114,16 +115,16 @@
                             {% endif %}
                             <tr>
                                 <th>Phí vận chuyển:</th>
-                                <td class="text-end">{{ shipping_fee|floatformat:0 }} ₫</td>
+                                <td class="text-end">{{ shipping_fee|default:"0"|floatformat:0 }} ₫</td>
                             </tr>
                             <tr class="fw-bold">
                                 <th>Tổng cộng:</th>
-                                <td class="text-end">{{ cart_total|floatformat:0 }} ₫</td>
+                                <td class="text-end">{{ cart_total|default:cart.total_price|floatformat:0 }} ₫</td>
                             </tr>
                         </tbody>
                     </table>
                     <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-success">
+                        <a href="{% url 'orders:checkout' %}" class="btn btn-success">
                             <i class="fas fa-shopping-cart me-1"></i> Tiến hành đặt hàng
                         </a>
                     </div>
@@ -137,7 +138,7 @@
             <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
             <h4 class="text-muted">Giỏ hàng của bạn đang trống</h4>
             <p class="text-muted mb-4">Hãy thêm sản phẩm vào giỏ hàng để tiến hành đặt hàng</p>
-            <a href="{% url 'home' %}" class="btn btn-primary">
+            <a href="{% url 'products:product_list' %}" class="btn btn-primary">
                 <i class="fas fa-shopping-bag me-1"></i> Tiếp tục mua sắm
             </a>
         </div>
@@ -181,27 +182,52 @@
                     };
                 });
                 
-                // TODO: Gửi AJAX request để cập nhật giỏ hàng
-                console.log('Updating cart with:', updates);
+                // Gửi AJAX request để cập nhật từng mục trong giỏ hàng
+                updates.forEach(item => {
+                    const formData = new FormData();
+                    formData.append('cart_item_id', item.id);
+                    formData.append('quantity', item.quantity);
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    
+                    fetch('{% url "cart:update_cart" %}', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Item updated:', data);
+                    })
+                    .catch(error => {
+                        console.error('Error updating item:', error);
+                    });
+                });
                 
-                // Giả lập thành công
-                alert('Giỏ hàng đã được cập nhật!');
-                location.reload();
+                // Reload trang sau khi cập nhật
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
             });
         }
         
         // Xử lý nút xóa mục trong giỏ hàng
         const removeItemBtns = document.querySelectorAll('.remove-item');
         removeItemBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
                 if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?')) {
                     const itemId = this.getAttribute('data-item-id');
-                    // TODO: Gửi AJAX request để xóa sản phẩm
-                    console.log('Removing item:', itemId);
+                    const url = this.getAttribute('href');
                     
-                    // Giả lập thành công
-                    this.closest('tr').remove();
-                    alert('Đã xóa sản phẩm khỏi giỏ hàng!');
+                    fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            this.closest('tr').remove();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error removing item:', error);
+                    });
                 }
             });
         });
@@ -209,14 +235,20 @@
         // Xử lý nút xóa toàn bộ giỏ hàng
         const clearCartBtn = document.getElementById('clear-cart');
         if (clearCartBtn) {
-            clearCartBtn.addEventListener('click', function() {
+            clearCartBtn.addEventListener('click', function(e) {
+                e.preventDefault();
                 if (confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?')) {
-                    // TODO: Gửi AJAX request để xóa toàn bộ giỏ hàng
-                    console.log('Clearing entire cart');
+                    const url = this.getAttribute('href');
                     
-                    // Giả lập thành công
-                    alert('Đã xóa toàn bộ giỏ hàng!');
-                    location.reload();
+                    fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error clearing cart:', error);
+                    });
                 }
             });
         }

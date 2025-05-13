@@ -1,0 +1,328 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard Bán hàng{% endblock %}
+
+{% block page_title %}Dashboard Bán hàng{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Doanh số hôm nay</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_revenue|default:0|intcomma }} VND</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Đơn hàng hôm nay</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_orders_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Doanh số tháng</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ month_revenue|default:0|intcomma }} VND</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Đơn chờ xử lý</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_orders_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hành động nhanh -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Hành động nhanh</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <a href="/sales/pos/" class="btn btn-success btn-block btn-lg">
+                            <i class="fas fa-cash-register mr-2"></i>Điểm bán hàng (POS)
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="/sales/orders/create/" class="btn btn-primary btn-block btn-lg">
+                            <i class="fas fa-plus-circle mr-2"></i>Tạo đơn hàng mới
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="/sales/customers/create/" class="btn btn-info btn-block btn-lg">
+                            <i class="fas fa-user-plus mr-2"></i>Thêm khách hàng mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Đơn hàng mới nhất</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
+                        <a class="dropdown-item" href="/sales/orders/">Xem tất cả đơn hàng</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/sales/orders/?status=pending">Lọc đơn đang chờ</a>
+                        <a class="dropdown-item" href="/sales/orders/?status=processing">Lọc đơn đang xử lý</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Khách hàng</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td><a href="/sales/orders/{{ order.id }}/">{{ order.order_number }}</a></td>
+                                <td>{{ order.customer.get_full_name }}</td>
+                                <td>{{ order.total|intcomma }} VND</td>
+                                <td>
+                                    {% if order.status == 'pending' %}
+                                    <span class="badge bg-primary">Mới</span>
+                                    {% elif order.status == 'processing' %}
+                                    <span class="badge bg-info">Đang xử lý</span>
+                                    {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-warning">Đang giao</span>
+                                    {% elif order.status == 'delivered' %}
+                                    <span class="badge bg-success">Hoàn thành</span>
+                                    {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Hủy</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="/sales/orders/{{ order.id }}/" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="/sales/orders/{{ order.id }}/edit/" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">Không có đơn hàng nào</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thống kê doanh thu</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="salesChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-primary"></i> Hôm nay
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-success"></i> Tuần này
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-info"></i> Tháng này
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Sản phẩm bán chạy</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Đã bán</th>
+                                <th>Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>{{ product.product__name }}</td>
+                                <td>{{ product.total_quantity }}</td>
+                                <td>{{ product.total_revenue|intcomma }} VND</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Khách hàng mới nhất</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Tên</th>
+                                <th>Email</th>
+                                <th>Số điện thoại</th>
+                                <th>Ngày đăng ký</th>
+                                <th>Đơn hàng</th>
+                                <th>Tổng chi tiêu</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in recent_customers %}
+                            <tr>
+                                <td>{{ customer.get_full_name }}</td>
+                                <td>{{ customer.email }}</td>
+                                <td>{{ customer.phone_number }}</td>
+                                <td>{{ customer.date_joined|date:"d/m/Y" }}</td>
+                                <td>{{ customer.order_count }}</td>
+                                <td>{{ customer.total_spent|intcomma }} VND</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="/sales/customers/{{ customer.id }}/" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="/sales/orders/create/?customer={{ customer.id }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-plus"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">Không có khách hàng mới</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Biểu đồ doanh thu
+        var ctx = document.getElementById('salesChart').getContext('2d');
+        var salesChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Hôm nay', 'Tuần này', 'Tháng này'],
+                datasets: [{
+                    data: [
+                        {{ today_revenue|default:0 }},
+                        {{ week_revenue|default:0 }} - {{ today_revenue|default:0 }},
+                        {{ month_revenue|default:0 }} - {{ week_revenue|default:0 }}
+                    ],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc'],
+                    hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
+{% endblock %} 

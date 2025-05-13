@@ -7,14 +7,14 @@ from .models import User, CustomerProfile, ShippingAddress
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_branch_manager')
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_branch_manager', 'is_sales_staff', 'is_inventory_staff', 'branch')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'role')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'role')
     search_fields = ('username', 'first_name', 'last_name', 'email', 'phone_number')
     
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'address', 'date_of_birth', 'avatar')}),
-        (_('Work info'), {'fields': ('branch', 'is_branch_manager', 'is_sales_staff', 'is_inventory_staff')}),
+        (_('Role info'), {'fields': ('role',)}),
         (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )
@@ -29,7 +29,7 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(CustomerProfile)
 class CustomerProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'company_name', 'points', 'is_vip')
+    list_display = ('user', 'company_name', 'loyalty_points', 'is_vip')
     list_filter = ('is_vip',)
     search_fields = ('user__username', 'user__email', 'company_name', 'tax_code')
 

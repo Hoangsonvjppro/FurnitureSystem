@@ -1,0 +1,306 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard Quản lý chi nhánh{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Doanh thu hôm nay</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_revenue|default:0|intcomma }} VND</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Đơn hàng mới</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ new_orders_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-bag fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Sản phẩm sắp hết</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ low_stock_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Tổng nhân viên</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ staff_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-tie fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Doanh thu theo tháng</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">Tùy chọn:</div>
+                        <a class="dropdown-item" href="#">Xuất báo cáo</a>
+                        <a class="dropdown-item" href="#">Xem chi tiết</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Tỷ lệ đơn hàng theo trạng thái</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="orderStatusChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-primary"></i> Mới
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-success"></i> Hoàn thành
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-info"></i> Đang xử lý
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-warning"></i> Đang giao
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-danger"></i> Hủy
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Đơn hàng mới nhất</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Khách hàng</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td><a href="{% url 'orders:order_detail' order.id %}">{{ order.order_number }}</a></td>
+                                <td>{{ order.customer.get_full_name }}</td>
+                                <td>{{ order.total|intcomma }} VND</td>
+                                <td>
+                                    {% if order.status == 'pending' %}
+                                    <span class="badge bg-primary">Mới</span>
+                                    {% elif order.status == 'processing' %}
+                                    <span class="badge bg-info">Đang xử lý</span>
+                                    {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-warning">Đang giao</span>
+                                    {% elif order.status == 'delivered' %}
+                                    <span class="badge bg-success">Hoàn thành</span>
+                                    {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Hủy</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Không có đơn hàng mới</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <a href="/branch-manager/orders/" class="btn btn-primary btn-sm">Xem tất cả đơn hàng</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Sản phẩm sắp hết hàng</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>SKU</th>
+                                <th>Số lượng</th>
+                                <th>Mức tối thiểu</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in low_stock_products %}
+                            <tr>
+                                <td>{{ stock.product.name }}</td>
+                                <td>{{ stock.product.sku }}</td>
+                                <td>{{ stock.quantity }}</td>
+                                <td>{{ stock.min_quantity }}</td>
+                                <td>
+                                    {% if stock.quantity <= 0 %}
+                                    <span class="badge bg-danger">Hết hàng</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Sắp hết</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Không có sản phẩm sắp hết hàng</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <a href="/branch-manager/inventory/" class="btn btn-primary btn-sm">Quản lý kho hàng</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Biểu đồ doanh thu
+        var ctx1 = document.getElementById('revenueChart').getContext('2d');
+        var revenueChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: {{ revenue_months|safe }},
+                datasets: [{
+                    label: 'Doanh thu (triệu VNĐ)',
+                    data: {{ revenue_data|safe }},
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                    pointBorderWidth: 1,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+
+        // Biểu đồ trạng thái đơn hàng
+        var ctx2 = document.getElementById('orderStatusChart').getContext('2d');
+        var orderStatusChart = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Mới', 'Đang xử lý', 'Đang giao', 'Hoàn thành', 'Hủy'],
+                datasets: [{
+                    data: {{ order_status_data|safe }},
+                    backgroundColor: ['#4e73df', '#36b9cc', '#f6c23e', '#1cc88a', '#e74a3b'],
+                    hoverBackgroundColor: ['#2e59d9', '#2c9faf', '#dda20a', '#17a673', '#c73b2f'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
+{% endblock %} 

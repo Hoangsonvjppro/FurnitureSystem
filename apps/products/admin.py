@@ -4,18 +4,18 @@ from .models import Category, Product, ProductImage, ProductTag, ProductVariant,
 
 
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent', 'is_active', 'order', 'created_at')
+    list_display = ('name', 'parent', 'is_active', 'created_at')
     list_filter = ('is_active', 'parent')
     search_fields = ('name', 'description')
     prepopulated_fields = {'slug': ('name',)}
-    list_editable = ('is_active', 'order')
+    list_editable = ('is_active',)
     list_per_page = 20
 
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
-    fields = ('image', 'alt_text', 'is_primary', 'order')
+    fields = ('image', 'alt_text')
 
 
 class VariantAttributeInline(admin.TabularInline):
@@ -31,23 +31,25 @@ class ProductVariantInline(admin.TabularInline):
 
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'display_price', 'is_active', 'is_featured', 'in_stock', 'created_at')
-    list_filter = ('category', 'is_active', 'is_featured', 'in_stock', 'created_at')
+    list_display = ('name', 'category', 'display_price', 'is_active', 'featured', 'created_at')
+    list_filter = ('category', 'is_active', 'featured', 'created_at')
     search_fields = ('name', 'sku', 'description')
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ('created_at', 'updated_at', 'display_image')
-    list_editable = ('is_active', 'is_featured', 'in_stock')
-    filter_horizontal = ('tags',)
+    list_editable = ('is_active', 'featured')
     inlines = [ProductImageInline, ProductVariantInline]
     fieldsets = (
         ('Thông tin cơ bản', {
-            'fields': ('name', 'slug', 'sku', 'category', 'tags')
+            'fields': ('name', 'slug', 'sku', 'category', 'supplier')
         }),
         ('Nội dung', {
-            'fields': ('description', 'specifications')
+            'fields': ('description',)
         }),
         ('Giá và trạng thái', {
-            'fields': ('price', 'sale_price', 'is_active', 'is_featured', 'in_stock')
+            'fields': ('price', 'discount_price', 'is_active', 'featured')
+        }),
+        ('Thông tin sản phẩm', {
+            'fields': ('weight', 'dimensions', 'material', 'color')
         }),
         ('Hình ảnh', {
             'fields': ('image', 'display_image')
@@ -60,9 +62,9 @@ class ProductAdmin(admin.ModelAdmin):
     list_per_page = 20
 
     def display_price(self, obj):
-        if obj.sale_price:
+        if obj.discount_price:
             return format_html('<span style="text-decoration: line-through;">{}</span> <span style="color: red;">{}</span>',
-                             f'{int(obj.price):,}đ', f'{int(obj.sale_price):,}đ')
+                             f'{int(obj.price):,}đ', f'{int(obj.discount_price):,}đ')
         return format_html('{:,}đ', int(obj.price))
     display_price.short_description = "Giá"
 

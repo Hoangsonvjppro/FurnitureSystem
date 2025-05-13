@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 from django.utils.text import slugify
 from django.urls import reverse
 from django.core.validators import MinValueValidator
@@ -6,21 +8,21 @@ from ckeditor.fields import RichTextField
 
 
 class Category(models.Model):
-    name = models.CharField("Tên danh mục", max_length=100)
-    slug = models.SlugField("Slug", max_length=100, unique=True)
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, 
-                              related_name='children', verbose_name="Danh mục cha")
-    image = models.ImageField("Hình ảnh", upload_to='categories/', null=True, blank=True)
-    description = models.TextField("Mô tả", blank=True)
-    is_active = models.BooleanField("Kích hoạt", default=True)
-    order = models.PositiveIntegerField("Thứ tự", default=0)
-    created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
-    updated_at = models.DateTimeField("Ngày cập nhật", auto_now=True)
+    """Danh mục sản phẩm"""
+    name = models.CharField(_("Tên danh mục"), max_length=100)
+    slug = models.SlugField(_("Slug"), max_length=100, unique=True)
+    parent = models.ForeignKey('self', verbose_name=_("Danh mục cha"), 
+                              on_delete=models.SET_NULL, null=True, blank=True, 
+                              related_name='children')
+    description = models.TextField(_("Mô tả"), blank=True)
+    image = models.ImageField(_("Hình ảnh"), upload_to='categories/', null=True, blank=True)
+    is_active = models.BooleanField(_("Kích hoạt"), default=True)
+    created_at = models.DateTimeField(_("Ngày tạo"), default=timezone.now)
     
     class Meta:
-        verbose_name = "Danh mục"
-        verbose_name_plural = "Danh mục"
-        ordering = ['order', 'name']
+        verbose_name = _("Danh mục")
+        verbose_name_plural = _("Danh mục")
+        ordering = ['name']
     
     def __str__(self):
         return self.name
@@ -31,11 +33,15 @@ class Category(models.Model):
         super().save(*args, **kwargs)
     
     def get_absolute_url(self):
-        return reverse('products:category_detail', args=[self.slug])
+        return reverse('products:category_detail', kwargs={'slug': self.slug})
     
     @property
-    def get_products(self):
-        return self.products.filter(is_active=True)
+    def get_all_children(self):
+        """Lấy tất cả danh mục con (đệ quy)"""
+        children = list(self.children.all())
+        for child in self.children.all():
+            children.extend(child.get_all_children)
+        return children
 
 
 class ProductTag(models.Model):
@@ -57,27 +63,31 @@ class ProductTag(models.Model):
 
 
 class Product(models.Model):
-    name = models.CharField("Tên sản phẩm", max_length=255)
-    slug = models.SlugField("Slug", max_length=255, unique=True)
-    sku = models.CharField("Mã sản phẩm", max_length=50, unique=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, 
-                                related_name='products', verbose_name="Danh mục")
-    description = RichTextField("Mô tả", blank=True)
-    specifications = RichTextField("Thông số kỹ thuật", blank=True)
-    price = models.DecimalField("Giá", max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    sale_price = models.DecimalField("Giá khuyến mãi", max_digits=10, decimal_places=2, 
-                                    validators=[MinValueValidator(0)], null=True, blank=True)
-    image = models.ImageField("Hình ảnh chính", upload_to='products/')
-    is_active = models.BooleanField("Kích hoạt", default=True)
-    is_featured = models.BooleanField("Nổi bật", default=False)
-    in_stock = models.BooleanField("Còn hàng", default=True)
-    tags = models.ManyToManyField(ProductTag, blank=True, related_name='products', verbose_name="Tags")
-    created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
-    updated_at = models.DateTimeField("Ngày cập nhật", auto_now=True)
+    """Sản phẩm"""
+    name = models.CharField(_("Tên sản phẩm"), max_length=200)
+    slug = models.SlugField(_("Slug"), max_length=200, unique=True)
+    sku = models.CharField(_("Mã sản phẩm"), max_length=50, unique=True)
+    description = models.TextField(_("Mô tả"))
+    price = models.DecimalField(_("Giá"), max_digits=10, decimal_places=2)
+    discount_price = models.DecimalField(_("Giá khuyến mãi"), max_digits=10, decimal_places=2, 
+                                       null=True, blank=True)
+    category = models.ForeignKey(Category, verbose_name=_("Danh mục"), 
+                               on_delete=models.CASCADE, related_name='products')
+    supplier = models.ForeignKey('suppliers.Supplier', verbose_name=_("Nhà cung cấp"), 
+                               on_delete=models.SET_NULL, null=True, related_name='products')
+    image = models.ImageField(_("Hình ảnh chính"), upload_to='products/')
+    is_active = models.BooleanField(_("Kích hoạt"), default=True)
+    created_at = models.DateTimeField(_("Ngày tạo"), default=timezone.now)
+    updated_at = models.DateTimeField(_("Ngày cập nhật"), auto_now=True)
+    featured = models.BooleanField(_("Sản phẩm nổi bật"), default=False)
+    weight = models.FloatField(_("Trọng lượng (kg)"), null=True, blank=True)
+    dimensions = models.CharField(_("Kích thước (DxRxC cm)"), max_length=50, blank=True)
+    material = models.CharField(_("Chất liệu"), max_length=100, blank=True)
+    color = models.CharField(_("Màu sắc"), max_length=50, blank=True)
     
     class Meta:
-        verbose_name = "Sản phẩm"
-        verbose_name_plural = "Sản phẩm"
+        verbose_name = _("Sản phẩm")
+        verbose_name_plural = _("Sản phẩm")
         ordering = ['-created_at']
     
     def __str__(self):
@@ -89,33 +99,31 @@ class Product(models.Model):
         super().save(*args, **kwargs)
     
     def get_absolute_url(self):
-        return reverse('products:product_detail', args=[self.slug])
+        return reverse('products:product_detail', kwargs={'slug': self.slug})
     
     @property
-    def current_price(self):
-        if self.sale_price:
-            return self.sale_price
-        return self.price
-    
-    @property
-    def discount_percentage(self):
-        if self.sale_price and self.price > 0:
-            return int(100 - (self.sale_price * 100 / self.price))
+    def get_discount_percentage(self):
+        """Tính phần trăm giảm giá"""
+        if self.discount_price:
+            return round((self.price - self.discount_price) / self.price * 100)
         return 0
+    
+    @property
+    def get_actual_price(self):
+        """Lấy giá thực tế (giá sau khuyến mãi nếu có)"""
+        return self.discount_price if self.discount_price else self.price
 
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, 
-                               related_name='images', verbose_name="Sản phẩm")
-    image = models.ImageField("Hình ảnh", upload_to='products/')
-    alt_text = models.CharField("Mô tả hình ảnh", max_length=255, blank=True)
-    is_primary = models.BooleanField("Hình ảnh chính", default=False)
-    order = models.PositiveIntegerField("Thứ tự", default=0)
+    """Hình ảnh phụ của sản phẩm"""
+    product = models.ForeignKey(Product, verbose_name=_("Sản phẩm"), 
+                              on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(_("Hình ảnh"), upload_to='products/')
+    alt_text = models.CharField(_("Alt text"), max_length=200, blank=True)
     
     class Meta:
-        verbose_name = "Hình ảnh sản phẩm"
-        verbose_name_plural = "Hình ảnh sản phẩm"
-        ordering = ['order']
+        verbose_name = _("Hình ảnh sản phẩm")
+        verbose_name_plural = _("Hình ảnh sản phẩm")
     
     def __str__(self):
         return f"Hình ảnh của {self.product.name}"
@@ -145,8 +153,8 @@ class ProductVariant(models.Model):
     
     @property
     def sale_price(self):
-        if self.product.sale_price:
-            return self.product.sale_price + self.price_adjustment
+        if self.product.discount_price:
+            return self.product.discount_price + self.price_adjustment
         return None
 
 

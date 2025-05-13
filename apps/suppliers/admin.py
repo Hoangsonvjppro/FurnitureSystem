@@ -6,85 +6,61 @@ from apps.suppliers.models import Supplier, PurchaseOrder, PurchaseOrderItem
 class PurchaseOrderItemInline(admin.TabularInline):
     model = PurchaseOrderItem
     extra = 0
-    raw_id_fields = ['product', 'variant']
-    fields = ['product', 'variant', 'quantity', 'unit_price', 'received_quantity', 'total_price']
-    readonly_fields = ['total_price']
+    raw_id_fields = ['product']
+    fields = ['product', 'quantity', 'unit_price', 'subtotal']
+    readonly_fields = ['subtotal']
     
-    def total_price(self, obj):
+    def subtotal(self, obj):
         if obj.unit_price and obj.quantity:
             return f"{obj.unit_price * obj.quantity:,.2f} VND"
         return "0 VND"
-    total_price.short_description = "Thành tiền"
+    subtotal.short_description = "Thành tiền"
 
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
-    list_display = ['name', 'code', 'contact_person', 'phone', 'email', 'display_rating', 'is_active']
-    list_filter = ['is_active', 'rating', 'created_at']
-    search_fields = ['name', 'code', 'contact_person', 'phone', 'email', 'address']
-    readonly_fields = ['created_at', 'updated_at']
+    list_display = ['name', 'contact_person', 'phone', 'email', 'is_active']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'contact_person', 'phone', 'email', 'address']
+    readonly_fields = ['created_at']
     fieldsets = [
         ('Thông tin cơ bản', {
-            'fields': ('name', 'code', 'contact_person', 'phone', 'email')
+            'fields': ('name', 'contact_person', 'phone', 'email')
         }),
         ('Thông tin chi tiết', {
-            'fields': ('address', 'tax_code', 'website', 'description', 'rating', 'is_active')
+            'fields': ('address', 'tax_code', 'website', 'notes', 'is_active')
         }),
         ('Thông tin hệ thống', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('created_at',),
             'classes': ('collapse',)
         }),
     ]
-    
-    def display_rating(self, obj):
-        if obj.rating:
-            stars = '★' * obj.rating + '☆' * (5 - obj.rating)
-            return format_html('<span style="color: #FFD700;">{}</span>', stars)
-        return "Chưa đánh giá"
-    display_rating.short_description = "Đánh giá"
 
 
 @admin.register(PurchaseOrder)
 class PurchaseOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'supplier', 'branch', 'status', 'order_date', 'total_amount', 'created_by']
-    list_filter = ['status', 'branch', 'order_date', 'created_at']
+    list_display = ['order_number', 'supplier', 'staff', 'status', 'created_at', 'total_amount']
+    list_filter = ['status', 'created_at']
     search_fields = ['order_number', 'supplier__name', 'notes']
-    readonly_fields = ['order_number', 'created_by', 'created_at', 'updated_at', 'total_amount']
+    readonly_fields = ['order_number', 'created_at', 'total_amount']
     inlines = [PurchaseOrderItemInline]
     fieldsets = [
         ('Thông tin cơ bản', {
-            'fields': ('order_number', 'supplier', 'branch', 'status')
+            'fields': ('order_number', 'supplier', 'staff', 'status')
         }),
         ('Thông tin ngày tháng', {
-            'fields': ('order_date', 'expected_date', 'received_date')
+            'fields': ('created_at', 'confirmed_at', 'received_at')
         }),
         ('Thông tin tài chính', {
             'fields': ('total_amount', 'notes')
-        }),
-        ('Thông tin hệ thống', {
-            'fields': ('created_by', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
         }),
     ]
     
     def save_model(self, request, obj, form, change):
         # Tự động gán người tạo là người dùng hiện tại
         if not change:
-            obj.created_by = request.user
+            obj.staff = request.user
             
-            # Tạo mã đơn hàng tự động nếu chưa có
-            if not obj.order_number:
-                prefix = "PO"
-                last_order = PurchaseOrder.objects.order_by('-created_at').first()
-                if last_order and last_order.order_number and last_order.order_number.startswith(prefix):
-                    try:
-                        last_number = int(last_order.order_number[len(prefix):])
-                        obj.order_number = f"{prefix}{last_number + 1:06d}"
-                    except ValueError:
-                        obj.order_number = f"{prefix}000001"
-                else:
-                    obj.order_number = f"{prefix}000001"
-                    
         super().save_model(request, obj, form, change)
     
     def save_formset(self, request, form, formset, change):
@@ -105,6 +81,7 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
         # Lưu các item
         for instance in instances:
             if instance.quantity > 0:
+                instance.subtotal = instance.quantity * instance.unit_price
                 instance.save()
         
         # Xóa các item đã đánh dấu delete
@@ -114,11 +91,11 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
 
 @admin.register(PurchaseOrderItem)
 class PurchaseOrderItemAdmin(admin.ModelAdmin):
-    list_display = ['purchase_order', 'product', 'variant', 'quantity', 'unit_price', 'received_quantity', 'display_total']
+    list_display = ['purchase_order', 'product', 'quantity', 'unit_price', 'subtotal']
     list_filter = ['purchase_order__status', 'purchase_order__supplier']
-    search_fields = ['purchase_order__order_number', 'product__name', 'product__code']
-    raw_id_fields = ['purchase_order', 'product', 'variant']
+    search_fields = ['purchase_order__order_number', 'product__name', 'product__sku']
+    raw_id_fields = ['purchase_order', 'product']
     
-    def display_total(self, obj):
-        return f"{obj.quantity * obj.unit_price:,.2f} VND"
-    display_total.short_description = "Thành tiền" 
+    def subtotal(self, obj):
+        return obj.subtotal
+    subtotal.short_description = "Thành tiền" 

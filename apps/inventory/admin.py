@@ -6,25 +6,11 @@ from apps.inventory.models import Stock, StockMovement, Inventory, InventoryItem
 
 
 class StockAdmin(admin.ModelAdmin):
-    list_display = ['product_name', 'variant_name', 'branch_name', 'quantity', 'min_quantity', 'max_quantity', 'stock_status', 'updated_at']
+    list_display = ['product', 'branch', 'quantity', 'min_quantity', 'max_quantity', 'stock_status', 'updated_at']
     list_filter = ['branch', 'product__category']
-    search_fields = ['product__name', 'product__sku', 'variant__name', 'variant__sku']
+    search_fields = ['product__name', 'product__sku']
     readonly_fields = ['updated_at']
-    autocomplete_fields = ['product', 'variant', 'branch']
-    
-    def product_name(self, obj):
-        return obj.product.name
-    product_name.short_description = "Sản phẩm"
-    product_name.admin_order_field = 'product__name'
-    
-    def variant_name(self, obj):
-        return obj.variant.name if obj.variant else "-"
-    variant_name.short_description = "Biến thể"
-    
-    def branch_name(self, obj):
-        return obj.branch.name
-    branch_name.short_description = "Chi nhánh"
-    branch_name.admin_order_field = 'branch__name'
+    autocomplete_fields = ['product', 'branch']
     
     def stock_status(self, obj):
         if obj.quantity <= obj.min_quantity:
@@ -36,59 +22,27 @@ class StockAdmin(admin.ModelAdmin):
     stock_status.short_description = "Trạng thái"
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('product', 'variant', 'branch')
+        return super().get_queryset(request).select_related('product', 'branch')
 
 
 class StockMovementAdmin(admin.ModelAdmin):
-    list_display = ['product_name', 'variant_name', 'branch_name', 'movement_type_display', 
-                   'quantity', 'performed_by_name', 'performed_at']
-    list_filter = ['movement_type', 'branch', 'performed_at']
+    list_display = ['product', 'movement_type', 'quantity', 'from_branch', 'to_branch', 'staff', 'created_at']
+    list_filter = ['movement_type', 'from_branch', 'to_branch', 'created_at']
     search_fields = ['product__name', 'product__sku', 'reference', 'notes']
-    readonly_fields = ['performed_at', 'performed_by']
-    autocomplete_fields = ['product', 'variant', 'branch', 'destination_branch']
-    
-    def product_name(self, obj):
-        return obj.product.name
-    product_name.short_description = "Sản phẩm"
-    product_name.admin_order_field = 'product__name'
-    
-    def variant_name(self, obj):
-        return obj.variant.name if obj.variant else "-"
-    variant_name.short_description = "Biến thể"
-    
-    def branch_name(self, obj):
-        return obj.branch.name
-    branch_name.short_description = "Chi nhánh"
-    branch_name.admin_order_field = 'branch__name'
-    
-    def movement_type_display(self, obj):
-        movement_types = {
-            'in': 'Nhập kho',
-            'out': 'Xuất kho',
-            'transfer': 'Chuyển kho',
-            'adjustment': 'Điều chỉnh',
-            'return': 'Trả hàng',
-        }
-        return movement_types.get(obj.movement_type, obj.movement_type)
-    movement_type_display.short_description = "Loại chuyển động"
-    
-    def performed_by_name(self, obj):
-        if obj.performed_by:
-            return obj.performed_by.get_full_name() or obj.performed_by.username
-        return "-"
-    performed_by_name.short_description = "Người thực hiện"
+    readonly_fields = ['created_at']
+    autocomplete_fields = ['product', 'from_branch', 'to_branch', 'staff']
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('product', 'variant', 'branch', 'performed_by')
+        return super().get_queryset(request).select_related('product', 'from_branch', 'to_branch', 'staff')
 
 
 class InventoryItemInline(admin.TabularInline):
     model = InventoryItem
     extra = 0
-    readonly_fields = ['product', 'variant', 'expected_quantity', 'difference']
-    fields = ['product', 'variant', 'expected_quantity', 'actual_quantity', 'difference', 'notes']
+    readonly_fields = ['product', 'expected_quantity', 'discrepancy']
+    fields = ['product', 'expected_quantity', 'actual_quantity', 'discrepancy', 'notes']
     
-    def difference(self, obj):
+    def discrepancy(self, obj):
         if obj.pk:  # Only compute if the object has been saved
             diff = obj.actual_quantity - obj.expected_quantity
             if diff > 0:
@@ -97,7 +51,7 @@ class InventoryItemInline(admin.TabularInline):
                 return format_html('<span style="color: red;">{}</span>', diff)
             return "0"
         return "-"
-    difference.short_description = "Chênh lệch"
+    discrepancy.short_description = "Chênh lệch"
     
     def has_add_permission(self, request, obj=None):
         return False
@@ -107,15 +61,15 @@ class InventoryItemInline(admin.TabularInline):
 
 
 class InventoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'branch_name', 'inventory_date', 'status', 'created_by_name', 'created_at']
-    list_filter = ['status', 'inventory_date', 'branch']
-    search_fields = ['branch__name', 'notes']
+    list_display = ['inventory_number', 'branch', 'status', 'created_by', 'created_at', 'completed_at']
+    list_filter = ['status', 'branch', 'created_at']
+    search_fields = ['branch__name', 'inventory_number', 'notes']
     readonly_fields = ['created_at', 'created_by', 'completed_at']
     inlines = [InventoryItemInline]
     
     fieldsets = (
         ('Thông tin kiểm kê', {
-            'fields': ('branch', 'inventory_date', 'status')
+            'fields': ('branch', 'inventory_number', 'status')
         }),
         ('Thời gian', {
             'fields': ('created_at', 'completed_at')
@@ -127,17 +81,6 @@ class InventoryAdmin(admin.ModelAdmin):
             'fields': ('notes',)
         }),
     )
-    
-    def branch_name(self, obj):
-        return obj.branch.name
-    branch_name.short_description = "Chi nhánh"
-    branch_name.admin_order_field = 'branch__name'
-    
-    def created_by_name(self, obj):
-        if obj.created_by:
-            return obj.created_by.get_full_name() or obj.created_by.username
-        return "-"
-    created_by_name.short_description = "Người tạo"
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('branch', 'created_by')

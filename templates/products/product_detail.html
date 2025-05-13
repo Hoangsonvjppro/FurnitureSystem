@@ -11,7 +11,7 @@
             <h1 class="h3 mb-2">{{ product.name }}</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'products:product_list' %}">Trang chủ</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'products:product_list' %}">Sản phẩm</a></li>
                     {% if product.category %}
                     <li class="breadcrumb-item"><a href="{% url 'products:category_detail' product.category.slug %}">{{ product.category.name }}</a></li>
@@ -29,19 +29,24 @@
                 <div class="card-body">
                     <div id="product-images" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-inner">
-                            {% if product.images.exists %}
-                                {% for image in product.images.all %}
-                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                    <img src="{{ image.image.url }}" class="d-block w-100 img-fluid" alt="{{ image.alt_text|default:product.name }}">
+                            {% if product.image %}
+                                <div class="carousel-item active">
+                                    <img src="{{ product.image.url }}" class="d-block w-100 img-fluid" alt="{{ product.name }}">
                                 </div>
-                                {% endfor %}
                             {% else %}
                                 <div class="carousel-item active">
                                     <img src="{% static 'images/placeholder.png' %}" class="d-block w-100 img-fluid" alt="{{ product.name }}">
                                 </div>
                             {% endif %}
+                            {% if product.images.exists %}
+                                {% for image in product.images.all %}
+                                <div class="carousel-item">
+                                    <img src="{{ image.image.url }}" class="d-block w-100 img-fluid" alt="{{ image.alt_text|default:product.name }}">
+                                </div>
+                                {% endfor %}
+                            {% endif %}
                         </div>
-                        {% if product.images.count > 1 %}
+                        {% if product.images.exists %}
                         <button class="carousel-control-prev" type="button" data-bs-target="#product-images" data-bs-slide="prev">
                             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                             <span class="visually-hidden">Previous</span>
@@ -53,10 +58,13 @@
                         {% endif %}
                     </div>
                     
-                    {% if product.images.count > 1 %}
+                    {% if product.images.exists %}
                     <div class="d-flex justify-content-center mt-3">
+                        <div class="thumbnail mx-1" style="width: 60px; cursor: pointer;" data-bs-target="#product-images" data-bs-slide-to="0">
+                            <img src="{{ product.image.url }}" class="img-thumbnail" alt="{{ product.name }}">
+                        </div>
                         {% for image in product.images.all %}
-                        <div class="thumbnail mx-1" style="width: 60px; cursor: pointer;" data-bs-target="#product-images" data-bs-slide-to="{{ forloop.counter0 }}">
+                        <div class="thumbnail mx-1" style="width: 60px; cursor: pointer;" data-bs-target="#product-images" data-bs-slide-to="{{ forloop.counter }}">
                             <img src="{{ image.image.url }}" class="img-thumbnail" alt="{{ image.alt_text|default:'' }}">
                         </div>
                         {% endfor %}
@@ -84,10 +92,12 @@
                     {% endif %}
                     
                     <div class="mb-4">
-                        <span class="h4 text-primary">{{ product.price|floatformat:0 }} VND</span>
-                        {% if product.old_price and product.old_price > product.price %}
-                        <span class="text-muted text-decoration-line-through ms-2">{{ product.old_price|floatformat:0 }} VND</span>
-                        <span class="badge bg-danger ms-2">Giảm {{ product.discount_percent|floatformat:0 }}%</span>
+                        {% if product.discount_price %}
+                            <span class="h4 text-primary">{{ product.discount_price|floatformat:0 }} VND</span>
+                            <span class="text-muted text-decoration-line-through ms-2">{{ product.price|floatformat:0 }} VND</span>
+                            <span class="badge bg-danger ms-2">Giảm {{ product.discount_percent|floatformat:0 }}%</span>
+                        {% else %}
+                            <span class="h4 text-primary">{{ product.price|floatformat:0 }} VND</span>
                         {% endif %}
                     </div>
                     
@@ -95,38 +105,44 @@
                         {{ product.description|linebreaks }}
                     </div>
                     
-                    <!-- Chọn biến thể -->
-                    {% if product.variants.exists %}
-                    <div class="mb-4">
-                        <label class="form-label">Biến thể</label>
-                        <select class="form-select mb-3" id="variant-select">
-                            {% for variant in product.variants.all %}
-                            <option value="{{ variant.id }}" data-price="{{ variant.price }}" 
-                                    {% if variant.stock_quantity <= 0 %}disabled="disabled"{% endif %}>
-                                {{ variant.name }} - {{ variant.price|floatformat:0 }} VND
-                                {% if variant.stock_quantity <= 0 %} (Hết hàng){% endif %}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Số lượng -->
-                    <div class="mb-4">
-                        <label for="quantity" class="form-label">Số lượng</label>
-                        <div class="input-group" style="max-width: 150px;">
-                            <button class="btn btn-outline-secondary" type="button" id="decrease-quantity">-</button>
-                            <input type="number" class="form-control text-center" id="quantity" min="1" value="1">
-                            <button class="btn btn-outline-secondary" type="button" id="increase-quantity">+</button>
+                    <!-- Form thêm vào giỏ hàng -->
+                    <form method="post" action="{% url 'cart:add_to_cart' %}" id="add-to-cart-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        
+                        <!-- Chọn biến thể -->
+                        {% if product.variants.exists %}
+                        <div class="mb-4">
+                            <label class="form-label">Biến thể</label>
+                            <select class="form-select mb-3" id="variant-select" name="variant_id">
+                                {% for variant in product.variants.all %}
+                                <option value="{{ variant.id }}" data-price="{{ variant.price }}" 
+                                        {% if variant.stock_quantity <= 0 %}disabled="disabled"{% endif %}>
+                                    {{ variant.name }} - {{ variant.price|floatformat:0 }} VND
+                                    {% if variant.stock_quantity <= 0 %} (Hết hàng){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
-                    
-                    <!-- Nút thêm vào giỏ hàng -->
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-primary" id="add-to-cart">
-                            <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ hàng
-                        </button>
-                    </div>
+                        {% endif %}
+                        
+                        <!-- Số lượng -->
+                        <div class="mb-4">
+                            <label for="quantity" class="form-label">Số lượng</label>
+                            <div class="input-group" style="max-width: 150px;">
+                                <button class="btn btn-outline-secondary" type="button" id="decrease-quantity">-</button>
+                                <input type="number" class="form-control text-center" id="quantity" name="quantity" min="1" value="1">
+                                <button class="btn btn-outline-secondary" type="button" id="increase-quantity">+</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Nút thêm vào giỏ hàng -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="add-to-cart">
+                                <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ hàng
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -165,8 +181,8 @@
                                 <td>{{ product.material|default:"N/A" }}</td>
                             </tr>
                             <tr>
-                                <th scope="row">Xuất xứ</th>
-                                <td>{{ product.origin|default:"N/A" }}</td>
+                                <th scope="row">Màu sắc</th>
+                                <td>{{ product.color|default:"N/A" }}</td>
                             </tr>
                             <tr>
                                 <th scope="row">Bảo hành</th>
@@ -191,8 +207,8 @@
                 <div class="col-md-3 col-sm-6 mb-4">
                     <div class="card h-100">
                         <a href="{% url 'products:product_detail' related.slug %}">
-                            {% if related.get_primary_image %}
-                            <img src="{{ related.get_primary_image.image.url }}" class="card-img-top" alt="{{ related.name }}">
+                            {% if related.image %}
+                            <img src="{{ related.image.url }}" class="card-img-top" alt="{{ related.name }}">
                             {% else %}
                             <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="{{ related.name }}">
                             {% endif %}
@@ -219,8 +235,6 @@
         const quantityInput = document.getElementById('quantity');
         const decreaseButton = document.getElementById('decrease-quantity');
         const increaseButton = document.getElementById('increase-quantity');
-        const addToCartButton = document.getElementById('add-to-cart');
-        const variantSelect = document.getElementById('variant-select');
         
         // Xử lý tăng giảm số lượng
         decreaseButton.addEventListener('click', function() {
@@ -234,66 +248,6 @@
             let currentValue = parseInt(quantityInput.value);
             quantityInput.value = currentValue + 1;
         });
-        
-        // Xử lý thêm vào giỏ hàng
-        addToCartButton.addEventListener('click', function() {
-            const quantity = parseInt(quantityInput.value);
-            const productId = {{ product.id }};
-            let variantId = null;
-            
-            if (variantSelect) {
-                variantId = variantSelect.value;
-            }
-            
-            // Gửi request thêm vào giỏ hàng
-            fetch('/cart/add/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    variant_id: variantId,
-                    quantity: quantity
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Hiển thị thông báo
-                    alert('Đã thêm sản phẩm vào giỏ hàng!');
-                    
-                    // Cập nhật số lượng sản phẩm trong giỏ hàng nếu có
-                    const cartCountElement = document.getElementById('cart-count');
-                    if (cartCountElement) {
-                        cartCountElement.textContent = data.cart_count;
-                    }
-                } else {
-                    alert(data.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
-            });
-        });
-        
-        // Hàm lấy cookie (cho CSRF token)
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
     });
 </script>
 {% endblock %} 

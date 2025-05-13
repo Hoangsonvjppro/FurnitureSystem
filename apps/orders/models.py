@@ -2,217 +2,165 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import uuid
+from django.utils.translation import gettext_lazy as _
+from decimal import Decimal
 
 
 class Order(models.Model):
+    """Đơn hàng của khách hàng"""
     STATUS_CHOICES = (
-        ('pending', 'Chờ xác nhận'),
-        ('processing', 'Đang xử lý'),
-        ('shipped', 'Đang giao hàng'),
-        ('delivered', 'Đã giao hàng'),
-        ('cancelled', 'Đã hủy'),
-        ('refunded', 'Đã hoàn tiền'),
+        ('PENDING', _('Chờ xác nhận')),
+        ('CONFIRMED', _('Đã xác nhận')),
+        ('SHIPPING', _('Đang giao hàng')),
+        ('DELIVERED', _('Đã giao hàng')),
+        ('CANCELLED', _('Đã hủy')),
     )
     
-    PAYMENT_STATUS_CHOICES = (
-        ('pending', 'Chờ thanh toán'),
-        ('partial', 'Thanh toán một phần'),
-        ('paid', 'Đã thanh toán'),
-        ('refunded', 'Đã hoàn tiền'),
-        ('failed', 'Thanh toán thất bại'),
+    PAYMENT_METHODS = (
+        ('CASH', _('Tiền mặt')),
+        ('BANK_TRANSFER', _('Chuyển khoản')),
+        ('CREDIT_CARD', _('Thẻ tín dụng')),
+        ('MOMO', _('Ví MoMo')),
+        ('ZALOPAY', _('ZaloPay')),
     )
     
-    PAYMENT_METHOD_CHOICES = (
-        ('cash', 'Tiền mặt'),
-        ('credit_card', 'Thẻ tín dụng'),
-        ('bank_transfer', 'Chuyển khoản'),
-        ('paypal', 'PayPal'),
-        ('momo', 'MoMo'),
-        ('vnpay', 'VNPay'),
-        ('zalopay', 'ZaloPay'),
-    )
-    
-    order_number = models.CharField("Mã đơn hàng", max_length=20, unique=True, editable=False)
+    order_number = models.CharField(_("Mã đơn hàng"), max_length=50, unique=True)
     customer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        'accounts.User',
+        on_delete=models.CASCADE,
         related_name='orders',
-        verbose_name="Khách hàng"
+        verbose_name=_("Khách hàng")
     )
     branch = models.ForeignKey(
         'branches.Branch',
         on_delete=models.CASCADE,
         related_name='orders',
-        verbose_name="Chi nhánh"
+        verbose_name=_("Chi nhánh")
     )
-    status = models.CharField("Trạng thái đơn hàng", max_length=20, choices=STATUS_CHOICES, default='pending')
-    payment_status = models.CharField("Trạng thái thanh toán", max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
-    payment_method = models.CharField("Phương thức thanh toán", max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
+    status = models.CharField(_("Trạng thái"), max_length=20, choices=STATUS_CHOICES, default='PENDING')
     
-    # Thông tin khách hàng
-    full_name = models.CharField("Họ tên", max_length=100)
-    email = models.EmailField("Email")
-    phone = models.CharField("Số điện thoại", max_length=20)
+    # Thông tin giao hàng
+    recipient_name = models.CharField(_("Tên người nhận"), max_length=100)
+    recipient_phone = models.CharField(_("Số điện thoại"), max_length=20)
+    shipping_address = models.TextField(_("Địa chỉ giao hàng"))
+    city = models.CharField(_("Thành phố"), max_length=100)
+    district = models.CharField(_("Quận/Huyện"), max_length=100)
+    ward = models.CharField(_("Phường/Xã"), max_length=100)
     
-    # Địa chỉ giao hàng
-    shipping_address = models.TextField("Địa chỉ giao hàng")
-    city = models.CharField("Thành phố", max_length=100)
-    district = models.CharField("Quận/Huyện", max_length=100)
-    ward = models.CharField("Phường/Xã", max_length=100)
-    note = models.TextField("Ghi chú", blank=True)
+    # Thông tin thanh toán
+    payment_method = models.CharField(_("Phương thức thanh toán"), max_length=20, choices=PAYMENT_METHODS)
+    is_paid = models.BooleanField(_("Đã thanh toán"), default=False)
     
-    # Thông tin đơn hàng
-    subtotal = models.DecimalField("Tạm tính", max_digits=12, decimal_places=2)
-    shipping_fee = models.DecimalField("Phí vận chuyển", max_digits=10, decimal_places=2, default=0)
-    tax = models.DecimalField("Thuế", max_digits=10, decimal_places=2, default=0)
-    discount = models.DecimalField("Giảm giá", max_digits=10, decimal_places=2, default=0)
-    total = models.DecimalField("Tổng tiền", max_digits=12, decimal_places=2)
-    paid_amount = models.DecimalField("Số tiền đã thanh toán", max_digits=12, decimal_places=2, default=0)
+    # Thông tin giá
+    subtotal = models.DecimalField(_("Tạm tính"), max_digits=12, decimal_places=2)
+    shipping_fee = models.DecimalField(_("Phí vận chuyển"), max_digits=10, decimal_places=2, default=0)
+    tax = models.DecimalField(_("Thuế"), max_digits=10, decimal_places=2, default=0)
+    discount = models.DecimalField(_("Giảm giá"), max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(_("Tổng tiền"), max_digits=12, decimal_places=2)
     
     # Thông tin thời gian
-    created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
-    updated_at = models.DateTimeField("Ngày cập nhật", auto_now=True)
-    paid_at = models.DateTimeField("Ngày thanh toán", null=True, blank=True)
-    shipped_at = models.DateTimeField("Ngày giao hàng", null=True, blank=True)
-    delivered_at = models.DateTimeField("Ngày nhận hàng", null=True, blank=True)
-    cancelled_at = models.DateTimeField("Ngày hủy", null=True, blank=True)
+    created_at = models.DateTimeField(_("Ngày tạo"), default=timezone.now)
+    confirmed_at = models.DateTimeField(_("Ngày xác nhận"), null=True, blank=True)
+    shipped_at = models.DateTimeField(_("Ngày giao hàng"), null=True, blank=True)
+    delivered_at = models.DateTimeField(_("Ngày nhận hàng"), null=True, blank=True)
+    cancelled_at = models.DateTimeField(_("Ngày hủy"), null=True, blank=True)
     
-    # Thông tin người xử lý
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    # Thông tin khác
+    notes = models.TextField(_("Ghi chú"), blank=True)
+    sales_staff = models.ForeignKey(
+        'accounts.User',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='created_orders',
-        verbose_name="Người tạo"
-    )
-    processed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
         related_name='processed_orders',
-        verbose_name="Người xử lý"
+        verbose_name=_("Nhân viên xử lý"),
+        null=True,
+        blank=True
     )
     
     class Meta:
-        verbose_name = "Đơn hàng"
-        verbose_name_plural = "Đơn hàng"
+        verbose_name = _("Đơn hàng")
+        verbose_name_plural = _("Đơn hàng")
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"Đơn hàng #{self.order_number}"
+        return f"Đơn hàng #{self.order_number} - {self.customer.get_full_name()}"
     
     def save(self, *args, **kwargs):
         if not self.order_number:
-            self.order_number = self.generate_order_number()
+            # Generate order number
+            last_order = Order.objects.order_by('-id').first()
+            last_id = last_order.id if last_order else 0
+            self.order_number = f"ORD{timezone.now().strftime('%Y%m%d')}{last_id + 1:04d}"
+        
+        # Calculate total
+        self.subtotal = sum(item.subtotal for item in self.items.all()) if self.id else Decimal('0')
+        self.total = self.subtotal + self.shipping_fee + self.tax - self.discount
         super().save(*args, **kwargs)
-    
-    def generate_order_number(self):
-        """Tạo mã đơn hàng"""
-        now = timezone.now()
-        year = now.strftime('%y')
-        month = now.strftime('%m')
-        day = now.strftime('%d')
-        random_str = str(uuid.uuid4().int)[:6]
-        return f"OR{year}{month}{day}{random_str}"
-    
-    @property
-    def is_paid(self):
-        """Kiểm tra đơn hàng đã thanh toán chưa"""
-        return self.payment_status == 'paid'
-    
-    @property
-    def balance_due(self):
-        """Số tiền còn lại cần thanh toán"""
-        return self.total - self.paid_amount
-    
-    @property
-    def can_cancel(self):
-        """Kiểm tra đơn hàng có thể hủy không"""
-        return self.status in ['pending', 'processing']
 
 
 class OrderItem(models.Model):
+    """Chi tiết đơn hàng"""
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
         related_name='items',
-        verbose_name="Đơn hàng"
+        verbose_name=_("Đơn hàng")
     )
     product = models.ForeignKey(
         'products.Product',
         on_delete=models.CASCADE,
         related_name='order_items',
-        verbose_name="Sản phẩm"
+        verbose_name=_("Sản phẩm")
     )
-    variant = models.ForeignKey(
-        'products.ProductVariant',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='order_items',
-        verbose_name="Biến thể"
-    )
-    price = models.DecimalField("Đơn giá", max_digits=10, decimal_places=2)
-    quantity = models.PositiveIntegerField("Số lượng", default=1)
-    discount = models.DecimalField("Giảm giá", max_digits=10, decimal_places=2, default=0)
-    note = models.CharField("Ghi chú", max_length=255, blank=True)
+    quantity = models.PositiveIntegerField(_("Số lượng"))
+    price = models.DecimalField(_("Giá bán"), max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(_("Thành tiền"), max_digits=12, decimal_places=2)
     
     class Meta:
-        verbose_name = "Chi tiết đơn hàng"
-        verbose_name_plural = "Chi tiết đơn hàng"
+        verbose_name = _("Chi tiết đơn hàng")
+        verbose_name_plural = _("Chi tiết đơn hàng")
     
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
+        return f"{self.product.name} ({self.quantity})"
     
-    @property
-    def total(self):
-        """Thành tiền"""
-        return (self.price * self.quantity) - self.discount
+    def save(self, *args, **kwargs):
+        self.subtotal = self.quantity * self.price
+        super().save(*args, **kwargs)
+        
+        # Update order subtotal
+        if self.order.id:
+            self.order.save()
 
 
 class Payment(models.Model):
+    """Thanh toán đơn hàng"""
+    PAYMENT_STATUS = (
+        ('PENDING', _('Chờ thanh toán')),
+        ('COMPLETED', _('Đã thanh toán')),
+        ('FAILED', _('Thanh toán thất bại')),
+        ('REFUNDED', _('Đã hoàn tiền')),
+    )
+    
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
         related_name='payments',
-        verbose_name="Đơn hàng"
+        verbose_name=_("Đơn hàng")
     )
-    amount = models.DecimalField("Số tiền", max_digits=12, decimal_places=2)
-    payment_method = models.CharField("Phương thức thanh toán", max_length=20, choices=Order.PAYMENT_METHOD_CHOICES)
-    transaction_id = models.CharField("Mã giao dịch", max_length=100, blank=True)
-    status = models.CharField(
-        "Trạng thái",
-        max_length=20,
-        choices=(
-            ('pending', 'Đang xử lý'),
-            ('completed', 'Hoàn thành'),
-            ('failed', 'Thất bại'),
-            ('refunded', 'Hoàn tiền'),
-        ),
-        default='pending'
-    )
-    payment_date = models.DateTimeField("Ngày thanh toán", default=timezone.now)
-    note = models.TextField("Ghi chú", blank=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='created_payments',
-        verbose_name="Người tạo"
-    )
-    created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
+    amount = models.DecimalField(_("Số tiền"), max_digits=12, decimal_places=2)
+    payment_method = models.CharField(_("Phương thức thanh toán"), max_length=20, choices=Order.PAYMENT_METHODS)
+    status = models.CharField(_("Trạng thái"), max_length=20, choices=PAYMENT_STATUS, default='PENDING')
+    transaction_id = models.CharField(_("Mã giao dịch"), max_length=100, blank=True)
+    created_at = models.DateTimeField(_("Ngày tạo"), default=timezone.now)
+    completed_at = models.DateTimeField(_("Ngày hoàn thành"), null=True, blank=True)
+    notes = models.TextField(_("Ghi chú"), blank=True)
     
     class Meta:
-        verbose_name = "Thanh toán"
-        verbose_name_plural = "Thanh toán"
-        ordering = ['-payment_date']
+        verbose_name = _("Thanh toán")
+        verbose_name_plural = _("Thanh toán")
+        ordering = ['-created_at']
     
     def __str__(self):
-        return f"Thanh toán {self.amount} cho đơn hàng {self.order.order_number}"
+        return f"Thanh toán {self.amount} cho đơn hàng #{self.order.order_number} - {self.get_status_display()}"
 
 
 class Delivery(models.Model):

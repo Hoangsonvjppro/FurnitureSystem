@@ -8,13 +8,13 @@ class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = [
-            'branch', 'full_name', 'email', 'phone',
+            'branch', 'recipient_name', 'recipient_phone',
             'shipping_address', 'city', 'district', 'ward',
-            'payment_method', 'shipping_fee', 'tax', 'discount', 'note'
+            'payment_method', 'shipping_fee', 'tax', 'discount', 'notes'
         ]
         widgets = {
             'shipping_address': forms.Textarea(attrs={'rows': 3}),
-            'note': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -25,7 +25,7 @@ class OrderForm(forms.ModelForm):
         self.fields['tax'].required = False
         self.fields['discount'].required = False
         self.fields['shipping_fee'].required = False
-        self.fields['note'].required = False
+        self.fields['notes'].required = False
         
         # Đặt giá trị mặc định
         self.fields['tax'].initial = 0
@@ -48,18 +48,12 @@ class OrderItemForm(forms.ModelForm):
     """Form chi tiết đơn hàng"""
     class Meta:
         model = OrderItem
-        fields = ['product', 'variant', 'price', 'quantity', 'discount', 'note']
+        fields = ['product', 'price', 'quantity']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Set các trường không bắt buộc
-        self.fields['variant'].required = False
-        self.fields['discount'].required = False
-        self.fields['note'].required = False
-        
         # Đặt giá trị mặc định
-        self.fields['discount'].initial = 0
         self.fields['quantity'].initial = 1
     
     def clean(self):
@@ -70,11 +64,6 @@ class OrderItemForm(forms.ModelForm):
         if quantity and quantity <= 0:
             self.add_error('quantity', _("Số lượng phải lớn hơn 0."))
         
-        # Kiểm tra giảm giá
-        discount = cleaned_data.get('discount')
-        if discount and discount < 0:
-            self.add_error('discount', _("Giảm giá không được âm."))
-        
         return cleaned_data
 
 
@@ -82,14 +71,14 @@ class PaymentForm(forms.ModelForm):
     """Form thanh toán"""
     class Meta:
         model = Payment
-        fields = ['amount', 'payment_method', 'transaction_id', 'status', 'note']
+        fields = ['amount', 'payment_method', 'transaction_id', 'status', 'notes']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         # Set các trường không bắt buộc
         self.fields['transaction_id'].required = False
-        self.fields['note'].required = False
+        self.fields['notes'].required = False
     
     def clean(self):
         cleaned_data = super().clean()

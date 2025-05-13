@@ -1,0 +1,270 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard Quản lý kho{% endblock %}
+
+{% block page_title %}Dashboard Kho{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Tổng sản phẩm</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_products|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-box fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Tổng tồn kho</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_quantity|default:0|intcomma }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Sản phẩm sắp hết</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ low_stock_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Hết hàng</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ out_of_stock_count|default:0 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Sản phẩm sắp hết hàng</h6>
+            </div>
+            <div class="card-body">
+                {% if low_stock_products %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>SKU</th>
+                                <th>Số lượng</th>
+                                <th>Mức tối thiểu</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in low_stock_products %}
+                            <tr>
+                                <td>{{ stock.product.name }}</td>
+                                <td>{{ stock.product.sku }}</td>
+                                <td>{{ stock.quantity }}</td>
+                                <td>{{ stock.min_quantity }}</td>
+                                <td>
+                                    {% if stock.quantity <= 0 %}
+                                    <span class="badge bg-danger">Hết hàng</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Sắp hết</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <p>Tất cả sản phẩm đều có đủ tồn kho.</p>
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="/inventory/stock/" class="btn btn-primary btn-sm">Xem tất cả tồn kho</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thao tác gần đây</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_activities %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Hoạt động</th>
+                                <th>Sản phẩm</th>
+                                <th>Số lượng</th>
+                                <th>Nhân viên</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for activity in recent_activities %}
+                            <tr>
+                                <td>{{ activity.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if activity.movement_type == 'IN' %}
+                                    <span class="badge bg-success">Nhập kho</span>
+                                    {% elif activity.movement_type == 'OUT' %}
+                                    <span class="badge bg-danger">Xuất kho</span>
+                                    {% elif activity.movement_type == 'TRANSFER' %}
+                                    <span class="badge bg-info">Chuyển kho</span>
+                                    {% elif activity.movement_type == 'ADJUST' %}
+                                    <span class="badge bg-warning">Điều chỉnh</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ activity.product.name }}</td>
+                                <td>{{ activity.quantity }}</td>
+                                <td>{{ activity.staff.get_full_name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-clock fa-3x text-info mb-3"></i>
+                    <p>Chưa có hoạt động nào gần đây.</p>
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="/inventory/movements/" class="btn btn-primary btn-sm">Xem tất cả hoạt động</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Thống kê tồn kho theo danh mục</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">Tùy chọn:</div>
+                        <a class="dropdown-item" href="#">Xuất báo cáo</a>
+                        <a class="dropdown-item" href="#">Xem dạng bảng</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-bar">
+                    <canvas id="categoryStockChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Biểu đồ tồn kho theo danh mục
+        var ctx = document.getElementById('categoryStockChart').getContext('2d');
+        var categoryStockChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ category_names|safe }},
+                datasets: [{
+                    label: 'Số lượng sản phẩm',
+                    data: {{ category_quantities|safe }},
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.7)',
+                        'rgba(28, 200, 138, 0.7)',
+                        'rgba(54, 185, 204, 0.7)',
+                        'rgba(246, 194, 62, 0.7)',
+                        'rgba(231, 74, 59, 0.7)',
+                        'rgba(133, 135, 150, 0.7)',
+                        'rgba(105, 70, 180, 0.7)',
+                        'rgba(0, 175, 145, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                    ],
+                    borderColor: [
+                        'rgba(78, 115, 223, 1)',
+                        'rgba(28, 200, 138, 1)',
+                        'rgba(54, 185, 204, 1)',
+                        'rgba(246, 194, 62, 1)',
+                        'rgba(231, 74, 59, 1)',
+                        'rgba(133, 135, 150, 1)',
+                        'rgba(105, 70, 180, 1)',
+                        'rgba(0, 175, 145, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 159, 64, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,188 +1,185 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.core.validators import MinValueValidator
 
 
 class Stock(models.Model):
-    branch = models.ForeignKey(
-        'branches.Branch',
-        on_delete=models.CASCADE,
-        related_name='stocks',
-        verbose_name="Chi nhánh"
-    )
+    """Tồn kho sản phẩm tại chi nhánh"""
     product = models.ForeignKey(
         'products.Product',
         on_delete=models.CASCADE,
         related_name='stocks',
-        verbose_name="Sản phẩm"
+        verbose_name=_("Sản phẩm")
     )
-    variant = models.ForeignKey(
-        'products.ProductVariant',
+    branch = models.ForeignKey(
+        'branches.Branch',
         on_delete=models.CASCADE,
         related_name='stocks',
-        null=True,
-        blank=True,
-        verbose_name="Biến thể"
+        verbose_name=_("Chi nhánh")
     )
-    quantity = models.PositiveIntegerField("Số lượng tồn kho", default=0)
-    min_quantity = models.PositiveIntegerField("Số lượng tối thiểu", default=5)
-    max_quantity = models.PositiveIntegerField("Số lượng tối đa", default=100)
-    updated_at = models.DateTimeField("Cập nhật lần cuối", auto_now=True)
+    quantity = models.PositiveIntegerField(_("Số lượng"), default=0)
+    min_quantity = models.PositiveIntegerField(_("Số lượng tối thiểu"), default=5)
+    max_quantity = models.PositiveIntegerField(_("Số lượng tối đa"), default=100)
+    updated_at = models.DateTimeField(_("Cập nhật lúc"), auto_now=True)
     
     class Meta:
-        verbose_name = "Tồn kho"
-        verbose_name_plural = "Tồn kho"
-        unique_together = ('branch', 'product', 'variant')
+        verbose_name = _("Tồn kho")
+        verbose_name_plural = _("Tồn kho")
+        unique_together = ('product', 'branch')
     
     def __str__(self):
-        variant_name = f" - {self.variant.name}" if self.variant else ""
-        return f"{self.product.name}{variant_name} tại {self.branch.name}: {self.quantity}"
+        return f"{self.product.name} - {self.branch.name}: {self.quantity}"
     
     @property
-    def is_low_stock(self):
-        """Kiểm tra nếu tồn kho thấp"""
+    def needs_restock(self):
+        """Kiểm tra nếu cần nhập thêm hàng"""
         return self.quantity <= self.min_quantity
     
     @property
-    def is_over_stock(self):
-        """Kiểm tra nếu tồn kho vượt quá mức cho phép"""
+    def overstocked(self):
+        """Kiểm tra nếu tồn kho vượt quá mức tối đa"""
         return self.quantity >= self.max_quantity
 
 
 class StockMovement(models.Model):
+    """Ghi nhận các chuyển động kho"""
     MOVEMENT_TYPES = (
-        ('in', 'Nhập kho'),
-        ('out', 'Xuất kho'),
-        ('transfer', 'Chuyển kho'),
-        ('adjustment', 'Điều chỉnh'),
-        ('return', 'Trả hàng'),
+        ('IN', _('Nhập kho')),
+        ('OUT', _('Xuất kho')),
+        ('TRANSFER', _('Chuyển kho')),
+        ('ADJUSTMENT', _('Điều chỉnh')),
+        ('RETURN', _('Trả hàng')),
     )
     
     product = models.ForeignKey(
         'products.Product',
         on_delete=models.CASCADE,
         related_name='movements',
-        verbose_name="Sản phẩm"
+        verbose_name=_("Sản phẩm")
     )
-    variant = models.ForeignKey(
-        'products.ProductVariant',
-        on_delete=models.SET_NULL,
-        related_name='movements',
-        null=True,
-        blank=True,
-        verbose_name="Biến thể"
-    )
-    branch = models.ForeignKey(
+    quantity = models.PositiveIntegerField(_("Số lượng"), validators=[MinValueValidator(1)])
+    movement_type = models.CharField(_("Loại chuyển động"), max_length=10, choices=MOVEMENT_TYPES)
+    from_branch = models.ForeignKey(
         'branches.Branch',
         on_delete=models.CASCADE,
-        related_name='movements',
-        verbose_name="Chi nhánh"
+        related_name='outgoing_movements',
+        verbose_name=_("Chi nhánh nguồn"),
+        null=True,
+        blank=True
     )
-    destination_branch = models.ForeignKey(
+    to_branch = models.ForeignKey(
         'branches.Branch',
         on_delete=models.CASCADE,
         related_name='incoming_movements',
+        verbose_name=_("Chi nhánh đích"),
         null=True,
-        blank=True,
-        verbose_name="Chi nhánh đích"
+        blank=True
     )
-    movement_type = models.CharField("Loại chuyển động", max_length=10, choices=MOVEMENT_TYPES)
-    quantity = models.PositiveIntegerField("Số lượng")
-    reference = models.CharField("Tham chiếu", max_length=100, blank=True)
-    notes = models.TextField("Ghi chú", blank=True)
-    performed_by = models.ForeignKey(
+    reference = models.CharField(_("Tham chiếu"), max_length=100, blank=True)
+    notes = models.TextField(_("Ghi chú"), blank=True)
+    staff = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,
         null=True,
         related_name='stock_movements',
-        verbose_name="Người thực hiện"
+        verbose_name=_("Nhân viên thực hiện")
     )
-    performed_at = models.DateTimeField("Thời gian thực hiện", default=timezone.now)
-    created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
+    created_at = models.DateTimeField(_("Thời gian"), default=timezone.now)
     
     class Meta:
-        verbose_name = "Chuyển động kho"
-        verbose_name_plural = "Chuyển động kho"
-        ordering = ['-performed_at']
+        verbose_name = _("Chuyển động kho")
+        verbose_name_plural = _("Chuyển động kho")
+        ordering = ['-created_at']
     
     def __str__(self):
-        movement_type_display = dict(self.MOVEMENT_TYPES)[self.movement_type]
-        return f"{movement_type_display} - {self.product.name} ({self.quantity})"
+        if self.movement_type == 'TRANSFER':
+            return f"{self.get_movement_type_display()}: {self.product.name} ({self.quantity}) từ {self.from_branch.name} đến {self.to_branch.name}"
+        elif self.movement_type == 'IN':
+            return f"{self.get_movement_type_display()}: {self.product.name} ({self.quantity}) vào {self.to_branch.name}"
+        elif self.movement_type == 'OUT':
+            return f"{self.get_movement_type_display()}: {self.product.name} ({self.quantity}) từ {self.from_branch.name}"
+        else:
+            return f"{self.get_movement_type_display()}: {self.product.name} ({self.quantity})"
 
 
 class Inventory(models.Model):
-    """Kiểm kê kho"""
+    """Phiếu kiểm kê hàng hóa"""
+    STATUS_CHOICES = (
+        ('DRAFT', _('Nháp')),
+        ('IN_PROGRESS', _('Đang kiểm kê')),
+        ('COMPLETED', _('Hoàn thành')),
+        ('CANCELLED', _('Đã hủy')),
+    )
+    
     branch = models.ForeignKey(
         'branches.Branch',
         on_delete=models.CASCADE,
         related_name='inventories',
-        verbose_name="Chi nhánh"
+        verbose_name=_("Chi nhánh")
     )
-    inventory_date = models.DateField("Ngày kiểm kê")
-    status = models.CharField(
-        "Trạng thái", 
-        max_length=20, 
-        choices=(
-            ('draft', 'Nháp'),
-            ('in_progress', 'Đang thực hiện'),
-            ('completed', 'Hoàn thành'),
-            ('cancelled', 'Đã hủy'),
-        ),
-        default='draft'
-    )
-    notes = models.TextField("Ghi chú", blank=True)
+    inventory_number = models.CharField(_("Mã kiểm kê"), max_length=50, unique=True)
+    status = models.CharField(_("Trạng thái"), max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    notes = models.TextField(_("Ghi chú"), blank=True)
     created_by = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,
         null=True,
         related_name='created_inventories',
-        verbose_name="Người tạo"
+        verbose_name=_("Người tạo")
     )
-    created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
-    completed_at = models.DateTimeField("Ngày hoàn thành", null=True, blank=True)
+    created_at = models.DateTimeField(_("Ngày tạo"), default=timezone.now)
+    completed_at = models.DateTimeField(_("Ngày hoàn thành"), null=True, blank=True)
     
     class Meta:
-        verbose_name = "Kiểm kê kho"
-        verbose_name_plural = "Kiểm kê kho"
-        ordering = ['-inventory_date']
+        verbose_name = _("Phiếu kiểm kê")
+        verbose_name_plural = _("Phiếu kiểm kê")
+        ordering = ['-created_at']
     
     def __str__(self):
-        return f"Kiểm kê kho {self.branch.name} - {self.inventory_date}"
+        return f"Kiểm kê #{self.inventory_number} - {self.branch.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.inventory_number:
+            # Generate inventory number
+            last_inventory = Inventory.objects.order_by('-id').first()
+            last_id = last_inventory.id if last_inventory else 0
+            self.inventory_number = f"INV{timezone.now().strftime('%Y%m%d')}{last_id + 1:04d}"
+        super().save(*args, **kwargs)
 
 
 class InventoryItem(models.Model):
-    """Chi tiết kiểm kê"""
+    """Chi tiết kiểm kê từng sản phẩm"""
     inventory = models.ForeignKey(
         Inventory,
         on_delete=models.CASCADE,
         related_name='items',
-        verbose_name="Kiểm kê"
+        verbose_name=_("Phiếu kiểm kê")
     )
     product = models.ForeignKey(
         'products.Product',
         on_delete=models.CASCADE,
         related_name='inventory_items',
-        verbose_name="Sản phẩm"
+        verbose_name=_("Sản phẩm")
     )
-    variant = models.ForeignKey(
-        'products.ProductVariant',
-        on_delete=models.SET_NULL,
-        related_name='inventory_items',
-        null=True,
-        blank=True,
-        verbose_name="Biến thể"
-    )
-    expected_quantity = models.PositiveIntegerField("Số lượng dự kiến", default=0)
-    actual_quantity = models.PositiveIntegerField("Số lượng thực tế", default=0)
-    notes = models.TextField("Ghi chú", blank=True)
+    expected_quantity = models.PositiveIntegerField(_("Số lượng hệ thống"), default=0)
+    actual_quantity = models.PositiveIntegerField(_("Số lượng thực tế"), default=0)
+    notes = models.TextField(_("Ghi chú"), blank=True)
     
     class Meta:
-        verbose_name = "Chi tiết kiểm kê"
-        verbose_name_plural = "Chi tiết kiểm kê"
+        verbose_name = _("Chi tiết kiểm kê")
+        verbose_name_plural = _("Chi tiết kiểm kê")
+        unique_together = ('inventory', 'product')
     
     def __str__(self):
-        return f"{self.product.name} - Dự kiến: {self.expected_quantity}, Thực tế: {self.actual_quantity}"
+        return f"{self.product.name}: {self.actual_quantity}/{self.expected_quantity}"
     
     @property
-    def difference(self):
-        """Chênh lệch giữa số lượng thực tế và dự kiến"""
+    def is_discrepancy(self):
+        """Check if there is a discrepancy between expected and actual quantity"""
+        return self.expected_quantity != self.actual_quantity
+    
+    @property
+    def discrepancy(self):
+        """Calculate the discrepancy amount"""
         return self.actual_quantity - self.expected_quantity 

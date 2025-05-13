@@ -110,20 +110,16 @@ def create_order_from_cart(request):
     
     if not cart_items.exists():
         messages.warning(request, 'Giỏ hàng của bạn đang trống.')
-        return redirect('cart:cart_view')
+        return redirect('cart:cart_detail')
     
     if request.method == 'POST':
         form = OrderForm(request.POST)
         if form.is_valid():
             order = form.save(commit=False)
             order.customer = request.user
-            order.created_by = request.user
-            
-            if request.user.branch:
-                order.branch = request.user.branch
             
             # Tính toán giá trị đơn hàng
-            subtotal = sum(item.total_price for item in cart_items)
+            subtotal = sum(item.subtotal for item in cart_items)
             order.subtotal = subtotal
             order.total = subtotal + order.shipping_fee + order.tax - order.discount
             
@@ -134,24 +130,16 @@ def create_order_from_cart(request):
                 OrderItem.objects.create(
                     order=order,
                     product=cart_item.product,
-                    variant=cart_item.variant,
                     price=cart_item.price,
-                    quantity=cart_item.quantity
+                    quantity=cart_item.quantity,
+                    subtotal=cart_item.subtotal
                 )
                 
                 # Cập nhật tồn kho
-                if cart_item.variant:
-                    stock = Stock.objects.filter(
-                        product=cart_item.product,
-                        variant=cart_item.variant,
-                        branch=order.branch
-                    ).first()
-                else:
-                    stock = Stock.objects.filter(
-                        product=cart_item.product,
-                        variant=None,
-                        branch=order.branch
-                    ).first()
+                stock = Stock.objects.filter(
+                    product=cart_item.product,
+                    branch=order.branch
+                ).first()
                 
                 if stock:
                     stock.quantity -= cart_item.quantity
@@ -164,32 +152,38 @@ def create_order_from_cart(request):
             return redirect('orders:order_detail', pk=order.pk)
     else:
         initial_data = {
-            'full_name': request.user.get_full_name(),
-            'email': request.user.email,
-            'phone': request.user.phone_number,
-            'address': request.user.address,
+            'recipient_name': request.user.get_full_name(),
+            'recipient_phone': request.user.phone_number,
+            'shipping_address': request.user.address
         }
         
         # Thêm địa chỉ giao hàng nếu có
         try:
-            customer_profile = request.user.customer_profile
-            default_address = customer_profile.shipping_addresses.filter(is_default=True).first()
-            if default_address:
+            shipping_address = request.user.shipping_addresses.filter(is_default=True).first()
+            if shipping_address:
                 initial_data.update({
-                    'shipping_address': default_address.address,
-                    'city': default_address.city,
-                    'district': default_address.district,
-                    'ward': default_address.ward,
+                    'recipient_name': shipping_address.recipient_name,
+                    'recipient_phone': shipping_address.phone,
+                    'shipping_address': shipping_address.address,
+                    'city': shipping_address.city,
+                    'district': shipping_address.district,
+                    'ward': shipping_address.ward,
                 })
         except:
             pass
         
         form = OrderForm(initial=initial_data)
     
+    # Tính toán tổng giá trị
+    subtotal = sum(item.subtotal for item in cart_items)
+    shipping_fee = 0  # Có thể tính toán dựa trên địa chỉ giao hàng
+    
     context = {
         'form': form,
         'cart_items': cart_items,
-        'subtotal': sum(item.total_price for item in cart_items)
+        'subtotal': subtotal,
+        'shipping_fee': shipping_fee,
+        'total': subtotal + shipping_fee
     }
     return render(request, 'orders/checkout.html', context)
 
