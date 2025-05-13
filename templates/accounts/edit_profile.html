@@ -21,10 +21,17 @@
                         
                         <div class="mb-3 text-center">
                             <div class="position-relative d-inline-block">
-                                <img src="{{ user.avatar.url|default:'https://via.placeholder.com/150' }}" 
+                                {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" 
                                      alt="Profile Picture" 
                                      class="rounded-circle img-thumbnail" 
                                      style="width: 150px; height: 150px; object-fit: cover;">
+                                {% else %}
+                                <img src="https://via.placeholder.com/150" 
+                                     alt="Profile Picture" 
+                                     class="rounded-circle img-thumbnail" 
+                                     style="width: 150px; height: 150px; object-fit: cover;">
+                                {% endif %}
                                 <label for="id_avatar" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2" 
                                        style="cursor: pointer;">
                                     <i class="fas fa-camera"></i>

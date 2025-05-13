@@ -80,24 +80,24 @@
                     <tr>
                         <th>Phân quyền</th>
                         <td>
-                            {% if user_obj.is_superuser %}
-                                <span class="badge badge-danger">Admin</span>
-                            {% endif %}
-                            {% if user_obj.is_staff %}
-                                <span class="badge badge-info">Nhân viên</span>
-                            {% endif %}
-                            {% if user_obj.is_branch_manager %}
-                                <span class="badge badge-primary">Quản lý chi nhánh</span>
-                            {% endif %}
-                            {% if user_obj.is_sales_staff %}
-                                <span class="badge badge-success">Nhân viên bán hàng</span>
-                            {% endif %}
-                            {% if user_obj.is_inventory_staff %}
-                                <span class="badge badge-warning">Nhân viên kho</span>
-                            {% endif %}
-                            {% if not user_obj.is_superuser and not user_obj.is_staff and not user_obj.is_branch_manager and not user_obj.is_sales_staff and not user_obj.is_inventory_staff %}
-                                <span class="badge badge-secondary">Khách hàng</span>
-                            {% endif %}
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h5>Vai trò:</h5>
+                                    {% if user_obj.is_superuser %}
+                                    <span class="badge bg-danger">Quản trị viên</span>
+                                    {% elif user_obj.role == 'MANAGER' %}
+                                    <span class="badge bg-success">Quản lý chi nhánh</span>
+                                    {% elif user_obj.role == 'SALES_STAFF' %}
+                                    <span class="badge bg-info">Nhân viên bán hàng</span>
+                                    {% elif user_obj.role == 'INVENTORY_STAFF' %}
+                                    <span class="badge bg-warning">Nhân viên kho</span>
+                                    {% elif user_obj.role == 'CUSTOMER' %}
+                                    <span class="badge bg-secondary">Khách hàng</span>
+                                    {% else %}
+                                    <span class="badge bg-light">Không xác định</span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 </table>

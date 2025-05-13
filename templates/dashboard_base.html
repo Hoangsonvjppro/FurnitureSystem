@@ -26,11 +26,12 @@
             </div>
 
             <ul class="list-unstyled components">
-                {% if user.is_superuser %}
-                <!-- Admin Navigation -->
-                <li class="nav-item {% if request.path == '/admin/dashboard/' %}active{% endif %}">
-                    <a href="/admin/dashboard/" class="nav-link">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                <!-- Dashboard navigation based on user role -->
+                {% if user.is_superuser or user.role == 'ADMIN' %}
+                <!-- Admin navigation -->
+                <li class="nav-item">
+                    <a href="{% url 'admin_panel:dashboard' %}" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> <span>Bảng điều khiển</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -50,11 +51,11 @@
                     <a href="/admin/reports/"><i class="fas fa-chart-line"></i> Báo cáo</a>
                 </li>
                 
-                {% elif user.is_branch_manager %}
-                <!-- Branch Manager Navigation -->
-                <li class="nav-item {% if request.path == '/branch-manager/dashboard/' %}active{% endif %}">
-                    <a href="/branch-manager/dashboard/" class="nav-link">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                {% elif user.role == 'MANAGER' %}
+                <!-- Branch Manager navigation -->
+                <li class="nav-item">
+                    <a href="{% url 'branches:manager_dashboard' %}" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> <span>Bảng điều khiển</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -70,11 +71,11 @@
                     <a href="/branch-manager/approvals/"><i class="fas fa-check-circle"></i> Phê duyệt</a>
                 </li>
                 
-                {% elif user.is_sales_staff %}
-                <!-- Sales Staff Navigation -->
-                <li class="nav-item {% if request.path == '/sales/dashboard/' %}active{% endif %}">
-                    <a href="/sales/dashboard/" class="nav-link">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                {% elif user.role == 'SALES_STAFF' %}
+                <!-- Sales Staff navigation -->
+                <li class="nav-item">
+                    <a href="{% url 'staff:sales_dashboard' %}" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> <span>Bảng điều khiển</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -90,11 +91,11 @@
                     <a href="/sales/products/"><i class="fas fa-box"></i> Sản phẩm</a>
                 </li>
                 
-                {% elif user.is_inventory_staff %}
-                <!-- Inventory Staff Navigation -->
-                <li class="nav-item {% if request.path == '/inventory/dashboard/' %}active{% endif %}">
-                    <a href="/inventory/dashboard/" class="nav-link">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                {% elif user.role == 'INVENTORY_STAFF' %}
+                <!-- Inventory Staff navigation -->
+                <li class="nav-item">
+                    <a href="{% url 'inventory:dashboard' %}" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> <span>Bảng điều khiển</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -112,6 +113,15 @@
                 <li class="nav-item">
                     <a href="/inventory/returns/"><i class="fas fa-undo"></i> Hàng trả về</a>
                 </li>
+                
+                {% else %}
+                <!-- Customer navigation -->
+                <li class="nav-item">
+                    <a href="{% url 'customer:profile' %}" class="nav-link">
+                        <i class="fas fa-user"></i> <span>Tài khoản của tôi</span>
+                    </a>
+                </li>
+                <!-- More customer links... -->
                 {% endif %}
                 
                 <!-- Common Navigation Items -->

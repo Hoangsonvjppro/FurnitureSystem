@@ -104,29 +104,34 @@ Trước khi bắt đầu sử dụng hệ thống, bạn cần thực hiện m�
    - Nhập thông tin cơ bản: username, email, mật khẩu, họ tên
    - Lưu lại để tạo tài khoản
 
-#### Cấu hình vai trò người dùng
+#### Thiết lập quyền người dùng
 
-Sau khi tạo tài khoản, bạn cần thiết lập vai trò cho người dùng:
+Để thiết lập quyền người dùng, bạn có thể sử dụng command line hoặc giao diện admin:
 
-1. **Tài khoản Quản lý chi nhánh**:
-   - Chọn người dùng đã tạo
-   - Đánh dấu tùy chọn "Quản lý chi nhánh" (is_branch_manager)
-   - Chọn chi nhánh mà người này quản lý trong trường "Chi nhánh"
-   - Tùy chọn có thể đánh dấu "Nhân viên" (is_staff) để cho phép truy cập trang admin
+#### Sử dụng command line:
 
-2. **Tài khoản Nhân viên bán hàng**:
-   - Chọn người dùng đã tạo
-   - Đánh dấu tùy chọn "Nhân viên bán hàng" (is_sales_staff)
-   - Chọn chi nhánh làm việc trong trường "Chi nhánh"
+```bash
+# Đặt vai trò cho người dùng
+python manage.py fix_user_roles username --role ROLE_NAME
 
-3. **Tài khoản Nhân viên kho**:
-   - Chọn người dùng đã tạo
-   - Đánh dấu tùy chọn "Nhân viên kho" (is_inventory_staff)
-   - Chọn chi nhánh làm việc trong trường "Chi nhánh"
+# Ví dụ:
+python manage.py fix_user_roles admin_user --role ADMIN
+python manage.py fix_user_roles sales_user --role SALES_STAFF
+python manage.py fix_user_roles inventory_user --role INVENTORY_STAFF
+python manage.py fix_user_roles manager_user --role MANAGER
+```
 
-4. **Tài khoản Khách hàng**:
-   - Khách hàng có thể tự đăng ký thông qua trang đăng ký
-   - Hoặc admin có thể tạo tài khoản khách hàng và thêm thông tin chi tiết trong "CustomerProfile"
+#### Sử dụng giao diện admin:
+
+1. Đăng nhập vào hệ thống với tài khoản quản trị
+2. Truy cập Admin Panel > Quản lý người dùng
+3. Chọn người dùng cần phân quyền
+4. Chọn vai trò phù hợp:
+   - Admin: Quản trị viên hệ thống
+   - Manager: Quản lý chi nhánh
+   - Sales Staff: Nhân viên bán hàng
+   - Inventory Staff: Nhân viên kho
+   - Customer: Khách hàng thường
 
 ### Phân quyền người dùng
 
@@ -308,14 +313,3 @@ Hệ thống sử dụng phân quyền dựa trên vai trò (role-based permissi
    ```bash
    python manage.py createsuperuser
    ```
-
-6. Khởi động server
-   ```bash
-   python manage.py runserver
-   ```
-
-## Liên hệ và hỗ trợ
-
-- **Email**: support@noithat.com
-- **Điện thoại**: 0123 456 789
-- **Website**: https://noithat.com 

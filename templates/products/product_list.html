@@ -102,9 +102,14 @@
                             {% endif %}
                             
                             <div class="d-grid gap-2 mt-3">
-                                <a href="#" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-shopping-cart me-1"></i> Thêm vào giỏ hàng
-                                </a>
+                                <form action="{% url 'cart:add_to_cart' %}" method="post" class="add-to-cart-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="fas fa-shopping-cart me-1"></i> Thêm vào giỏ hàng
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

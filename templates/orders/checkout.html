@@ -37,6 +37,9 @@
                                 {{ form.ward|as_crispy_field }}
                             </div>
                             <div class="col-12">
+                                {{ form.branch|as_crispy_field }}
+                            </div>
+                            <div class="col-12">
                                 {{ form.notes|as_crispy_field }}
                             </div>
                         </div>
@@ -67,7 +70,11 @@
                         <div class="list-group-item py-3">
                             <div class="row">
                                 <div class="col-3">
-                                    <img src="{{ item.product.image.url|default:'#' }}" alt="{{ item.product.name }}" class="img-fluid rounded">
+                                    {% if item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="img-fluid rounded">
+                                    {% else %}
+                                        <img src="{% static 'img/default-product.svg' %}" alt="{{ item.product.name }}" class="img-fluid rounded">
+                                    {% endif %}
                                 </div>
                                 <div class="col-9">
                                     <h6 class="my-0">{{ item.product.name }}</h6>

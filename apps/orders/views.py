@@ -15,6 +15,7 @@ from apps.orders.forms import OrderForm, OrderItemForm, PaymentForm, DeliveryFor
 from apps.products.models import Product, ProductVariant
 from apps.cart.models import Cart, CartItem
 from apps.inventory.models import Stock
+from apps.branches.models import Branch
 
 
 class OrderListView(LoginRequiredMixin, ListView):
@@ -123,6 +124,20 @@ def create_order_from_cart(request):
             order.subtotal = subtotal
             order.total = subtotal + order.shipping_fee + order.tax - order.discount
             
+            # Gán chi nhánh cho đơn hàng
+            if not order.branch:
+                # Sử dụng chi nhánh của người dùng nếu có
+                if request.user.branch:
+                    order.branch = request.user.branch
+                else:
+                    # Hoặc sử dụng chi nhánh đầu tiên trong hệ thống
+                    default_branch = Branch.objects.filter(is_active=True).first()
+                    if default_branch:
+                        order.branch = default_branch
+                    else:
+                        messages.error(request, 'Không thể tạo đơn hàng: Không tìm thấy chi nhánh phù hợp.')
+                        return redirect('cart:cart_detail')
+            
             order.save()
             
             # Chuyển các mặt hàng từ giỏ hàng sang đơn hàng
@@ -196,27 +211,23 @@ def create_order_from_cart(request):
 
 @login_required
 def update_order_status(request, pk):
-    """Cập nhật trạng thái đơn hàng"""
     order = get_object_or_404(Order, pk=pk)
     
+    # Kiểm tra quyền truy cập
+    if not (request.user.is_superuser or request.user.role == 'MANAGER' or request.user.role == 'SALES_STAFF'):
+        messages.error(request, 'Bạn không có quyền thực hiện hành động này.')
+        return redirect('orders:order_detail', pk=order.pk)
+    
     if request.method == 'POST':
-        new_status = request.POST.get('status')
-        if new_status and new_status in dict(Order.STATUS_CHOICES):
-            old_status = order.status
-            order.status = new_status
-            
-            # Cập nhật thời gian theo trạng thái
-            if new_status == 'shipped' and not order.shipped_at:
-                order.shipped_at = timezone.now()
-            elif new_status == 'delivered' and not order.delivered_at:
-                order.delivered_at = timezone.now()
-            elif new_status == 'cancelled' and not order.cancelled_at:
-                order.cancelled_at = timezone.now()
-            
+        status = request.POST.get('status')
+        if status and status in dict(Order.STATUS_CHOICES):
+            # Cập nhật trạng thái đơn hàng
+            order.status = status
             order.processed_by = request.user
+            order.processed_at = timezone.now()
             order.save()
             
-            messages.success(request, f'Trạng thái đơn hàng đã được cập nhật từ {dict(Order.STATUS_CHOICES)[old_status]} sang {dict(Order.STATUS_CHOICES)[new_status]}.')
+            messages.success(request, f'Trạng thái đơn hàng đã được cập nhật thành {dict(Order.STATUS_CHOICES)[status]}.')
         else:
             messages.error(request, 'Trạng thái không hợp lệ.')
     
@@ -228,92 +239,208 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
     form_class = PaymentForm
     template_name = 'orders/payment_form.html'
     
+    def dispatch(self, request, *args, **kwargs):
+        # Kiểm tra quyền truy cập
+        if not (request.user.is_superuser or request.user.role == 'MANAGER' or request.user.role == 'SALES_STAFF'):
+            messages.error(request, 'Bạn không có quyền thực hiện hành động này.')
+            return redirect('orders:order_detail', pk=self.kwargs.get('pk'))
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        order_id = self.kwargs.get('order_id')
-        context['order'] = get_object_or_404(Order, id=order_id)
+        context['order'] = get_object_or_404(Order, pk=self.kwargs.get('pk'))
         return context
     
     def form_valid(self, form):
-        order_id = self.kwargs.get('order_id')
-        order = get_object_or_404(Order, id=order_id)
+        order = get_object_or_404(Order, pk=self.kwargs.get('pk'))
         
-        form.instance.order = order
-        form.instance.created_by = self.request.user
+        payment = form.save(commit=False)
+        payment.order = order
+        payment.created_by = self.request.user
         
-        response = super().form_valid(form)
-        
-        # Cập nhật thông tin thanh toán của đơn hàng
-        if form.instance.status == 'completed':
-            order.paid_amount += form.instance.amount
+        # Cập nhật trạng thái thanh toán của đơn hàng
+        if payment.status == 'completed':
+            # Tính tổng tiền đã thanh toán
+            existing_payments = Payment.objects.filter(
+                order=order, 
+                status='completed'
+            ).aggregate(total=Sum('amount'))
+            
+            total_paid = existing_payments.get('total') or 0
+            total_paid += payment.amount
             
             # Cập nhật trạng thái thanh toán
-            if order.paid_amount >= order.total:
+            if total_paid >= order.total:
                 order.payment_status = 'paid'
-                order.paid_at = timezone.now()
-            elif order.paid_amount > 0:
+            elif total_paid > 0:
                 order.payment_status = 'partial'
             
             order.save()
         
-        messages.success(self.request, f'Thanh toán {form.instance.amount} đã được ghi nhận.')
-        
-        return response
+        return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('order_id')})
+        messages.success(self.request, 'Thanh toán đã được thêm thành công.')
+        return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('pk')})
 
 
 @login_required
 def generate_invoice_pdf(request, pk):
-    """Tạo và in hóa đơn PDF cho đơn hàng"""
+    order = get_object_or_404(Order, pk=pk)
+    
+    # Kiểm tra quyền truy cập
+    if not (request.user.is_superuser or request.user.role == 'MANAGER' or request.user.role == 'SALES_STAFF' or request.user == order.customer):
+        messages.error(request, 'Bạn không có quyền thực hiện hành động này.')
+        return redirect('orders:order_detail', pk=order.pk)
+    
+    # Nếu chưa có đơn hàng, chuyển hướng về trang chi tiết với thông báo lỗi
+    if not order.items.exists():
+        messages.error(request, 'Không thể tạo hóa đơn: Đơn hàng không có sản phẩm.')
+        return redirect('orders:order_detail', pk=order.pk)
+    
+    # Nếu đơn hàng chưa thanh toán, chuyển hướng về trang chi tiết với thông báo lỗi
+    if order.payment_status != 'paid':
+        messages.warning(request, 'Đơn hàng chưa thanh toán đầy đủ. Hóa đơn có thể không chính xác.')
+    
+    # Tạo hóa đơn
     try:
-        # Import pisa chỉ khi cần sử dụng
-        import pisa
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from io import BytesIO
+        from decimal import Decimal
         
-        order = get_object_or_404(Order, pk=pk)
+        # Tạo một đối tượng BytesIO để ghi PDF vào
+        buffer = BytesIO()
         
-        # Kiểm tra quyền hạn - chỉ admin, người tạo đơn hàng hoặc nhân viên bán hàng mới có quyền
-        if not (request.user.is_superuser or request.user == order.created_by or 
-                request.user.is_sales_staff or request.user.is_branch_manager):
-            messages.error(request, 'Bạn không có quyền thực hiện chức năng này.')
-            return redirect('orders:order_detail', pk=order.pk)
+        # Tạo đối tượng PDF
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=18)
+        styles = getSampleStyleSheet()
         
-        # Lấy các thông tin cần thiết
-        order_items = order.items.all()
-        payments = order.payments.all()
+        # Tạo các phần tử cho PDF
+        elements = []
         
-        # Tạo context cho template
-        context = {
-            'order': order,
-            'order_items': order_items,
-            'payments': payments,
-            'current_date': timezone.now(),
-            'staff_name': request.user.get_full_name()
-        }
+        # Thêm tiêu đề
+        elements.append(Paragraph(f"Hóa đơn #{order.order_number}", styles['Heading1']))
+        elements.append(Spacer(1, 20))
         
-        # Tạo PDF từ template
-        template = get_template('orders/invoice_pdf.html')
-        html = template.render(context)
+        # Thông tin cửa hàng
+        elements.append(Paragraph("Cửa hàng nội thất XYZ", styles['Heading2']))
+        elements.append(Paragraph(f"Chi nhánh: {order.branch.name}", styles['Normal']))
+        elements.append(Paragraph(f"Địa chỉ: {order.branch.address}", styles['Normal']))
+        elements.append(Paragraph(f"Điện thoại: {order.branch.phone}", styles['Normal']))
+        elements.append(Spacer(1, 20))
         
-        # Tạo response với content type là PDF
+        # Thông tin khách hàng
+        elements.append(Paragraph("Thông tin khách hàng", styles['Heading2']))
+        elements.append(Paragraph(f"Khách hàng: {order.full_name}", styles['Normal']))
+        elements.append(Paragraph(f"Địa chỉ: {order.shipping_address}, {order.ward}, {order.district}, {order.city}", styles['Normal']))
+        elements.append(Paragraph(f"Điện thoại: {order.phone}", styles['Normal']))
+        elements.append(Paragraph(f"Email: {order.email}", styles['Normal']))
+        elements.append(Spacer(1, 20))
+        
+        # Thông tin đơn hàng
+        elements.append(Paragraph("Chi tiết đơn hàng", styles['Heading2']))
+        elements.append(Paragraph(f"Ngày đặt hàng: {order.created_at.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+        elements.append(Paragraph(f"Phương thức thanh toán: {dict(Order.PAYMENT_METHOD_CHOICES).get(order.payment_method)}", styles['Normal']))
+        elements.append(Spacer(1, 10))
+        
+        # Bảng chi tiết sản phẩm
+        data = [
+            ['STT', 'Sản phẩm', 'Đơn giá', 'Số lượng', 'Thành tiền']
+        ]
+        
+        for index, item in enumerate(order.items.all(), start=1):
+            product_info = f"{item.product.name}"
+            if item.variant:
+                product_info += f"\n{item.variant.name}"
+            
+            data.append([
+                str(index),
+                product_info,
+                f"{item.price:,.0f} đ",
+                str(item.quantity),
+                f"{item.subtotal:,.0f} đ"
+            ])
+        
+        # Thêm tổng tiền
+        data.append(['', '', '', 'Tạm tính', f"{order.subtotal:,.0f} đ"])
+        
+        if order.shipping_fee:
+            data.append(['', '', '', 'Phí vận chuyển', f"{order.shipping_fee:,.0f} đ"])
+        
+        if order.tax:
+            data.append(['', '', '', 'Thuế', f"{order.tax:,.0f} đ"])
+        
+        if order.discount:
+            data.append(['', '', '', 'Giảm giá', f"-{order.discount:,.0f} đ"])
+        
+        data.append(['', '', '', 'Tổng cộng', f"{order.total:,.0f} đ"])
+        
+        # Tạo bảng
+        table = Table(data, colWidths=[30, 220, 80, 80, 100])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+            ('FONTNAME', (0, -5), (-1, -1), 'Helvetica-Bold'),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEABOVE', (0, -5), (-1, -5), 1, colors.black),
+            ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
+        ]))
+        
+        elements.append(table)
+        elements.append(Spacer(1, 20))
+        
+        # Chữ ký và ghi chú
+        elements.append(Paragraph("Ghi chú:", styles['Heading3']))
+        elements.append(Paragraph("- Hàng đã bán không đổi trả, trừ trường hợp lỗi do nhà sản xuất.", styles['Normal']))
+        elements.append(Paragraph("- Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi nhận hàng.", styles['Normal']))
+        elements.append(Spacer(1, 30))
+        
+        # Tạo bảng chữ ký
+        signature_data = [
+            ['Người mua hàng', '', 'Người bán hàng'],
+            ['(Ký, ghi rõ họ tên)', '', '(Ký, đóng dấu)'],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            [order.full_name, '', request.user.get_full_name()],
+        ]
+        
+        signature_table = Table(signature_data, colWidths=[160, 80, 160])
+        signature_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ]))
+        
+        elements.append(signature_table)
+        
+        # Xây dựng PDF
+        doc.build(elements)
+        
+        # Lấy nội dung PDF
+        pdf_value = buffer.getvalue()
+        buffer.close()
+        
+        # Tạo HTTP Response với PDF
         response = HttpResponse(content_type='application/pdf')
-        
-        # Đặt filename cho tệp PDF khi tải xuống
-        filename = f"invoice-{order.order_number}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
-        # Tạo PDF sử dụng xhtml2pdf
-        pisa_status = pisa.CreatePDF(html, dest=response)
-        
-        # Trả về error nếu có lỗi
-        if pisa_status.err:
-            return HttpResponse('Đã xảy ra lỗi khi tạo hóa đơn PDF: %s' % pisa_status.err)
+        response['Content-Disposition'] = f'inline; filename="invoice_{order.order_number}.pdf"'
+        response.write(pdf_value)
         
         return response
-    except ImportError:
-        messages.error(request, 'Không thể tạo file PDF. Thư viện xhtml2pdf không khả dụng.')
-        return redirect('orders:order_detail', pk=pk)
+    
+    except Exception as e:
+        messages.error(request, f'Không thể tạo hóa đơn: {str(e)}')
+        return redirect('orders:order_detail', pk=order.pk)
 
 
 class DeliveryUpdateView(LoginRequiredMixin, UpdateView):
@@ -321,32 +448,40 @@ class DeliveryUpdateView(LoginRequiredMixin, UpdateView):
     form_class = DeliveryForm
     template_name = 'orders/delivery_form.html'
     
+    def dispatch(self, request, *args, **kwargs):
+        # Kiểm tra quyền truy cập
+        if not (request.user.is_superuser or request.user.role == 'MANAGER' or request.user.role == 'SALES_STAFF'):
+            messages.error(request, 'Bạn không có quyền thực hiện hành động này.')
+            return redirect('orders:order_detail', pk=self.kwargs.get('pk'))
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_object(self, queryset=None):
-        order_id = self.kwargs.get('order_id')
-        order = get_object_or_404(Order, id=order_id)
-        
+        order = get_object_or_404(Order, pk=self.kwargs.get('pk'))
         delivery, created = Delivery.objects.get_or_create(order=order)
         return delivery
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        order_id = self.kwargs.get('order_id')
-        context['order'] = get_object_or_404(Order, id=order_id)
+        context['order'] = get_object_or_404(Order, pk=self.kwargs.get('pk'))
         return context
     
     def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'Thông tin giao hàng đã được cập nhật.')
+        delivery = form.save()
+        order = delivery.order
         
-        # Cập nhật trạng thái đơn hàng nếu đã giao hàng
-        if form.instance.status == 'delivered':
-            order = form.instance.order
-            if order.status != 'delivered':
-                order.status = 'delivered'
-                order.delivered_at = timezone.now()
-                order.save()
+        # Cập nhật trạng thái đơn hàng nếu cần
+        if delivery.status == 'delivered' and order.status != 'delivered':
+            order.status = 'delivered'
+            order.save()
+        elif delivery.status == 'shipping' and order.status == 'pending':
+            order.status = 'shipped'
+            order.save()
+        elif delivery.status == 'returned' and order.status != 'cancelled':
+            order.status = 'cancelled'
+            order.save()
         
-        return response
+        messages.success(self.request, 'Thông tin giao hàng đã được cập nhật thành công.')
+        return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('order_id')}) 
+        return reverse('orders:order_detail', kwargs={'pk': self.kwargs.get('pk')}) 

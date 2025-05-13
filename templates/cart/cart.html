@@ -29,7 +29,11 @@
                         {% for item in cart_items %}
                         <tr>
                             <td>
-                                <img src="{{ item.product.image.url|default:'#' }}" alt="{{ item.product.name }}" class="img-thumbnail" style="max-width: 80px;">
+                                {% if item.product.image %}
+                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="img-thumbnail" style="max-width: 80px;">
+                                {% else %}
+                                    <img src="{% static 'img/default-product.svg' %}" alt="{{ item.product.name }}" class="img-thumbnail" style="max-width: 80px;">
+                                {% endif %}
                             </td>
                             <td>
                                 <h6 class="mb-0">{{ item.product.name }}</h6>

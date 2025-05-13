@@ -87,22 +87,20 @@ def user_list(request):
     # Apply filters
     role_filter = request.GET.get('role')
     if role_filter == 'admin':
-        users = users.filter(is_superuser=True)
+        users = users.filter(Q(is_superuser=True) | Q(role='ADMIN'))
     elif role_filter == 'staff':
         users = users.filter(is_staff=True, is_superuser=False)
     elif role_filter == 'branch_manager':
-        users = users.filter(is_branch_manager=True)
+        users = users.filter(role='MANAGER')
     elif role_filter == 'sales':
-        users = users.filter(is_sales_staff=True)
+        users = users.filter(role='SALES_STAFF')
     elif role_filter == 'inventory':
-        users = users.filter(is_inventory_staff=True)
+        users = users.filter(role='INVENTORY_STAFF')
     elif role_filter == 'customer':
         users = users.filter(
             is_superuser=False, 
             is_staff=False,
-            is_branch_manager=False,
-            is_sales_staff=False,
-            is_inventory_staff=False
+            role='CUSTOMER'
         )
     
     context = {
@@ -167,14 +165,9 @@ def user_create(request):
         user.is_superuser = 'is_superuser' in request.POST
         
         # Cấu hình vai trò - đảm bảo chỉ có một vai trò duy nhất
-        role = request.POST.get('role', '')
-        if role == 'branch_manager':
-            user.is_branch_manager = True
-        elif role == 'sales_staff':
-            user.is_sales_staff = True
-        elif role == 'inventory_staff':
-            user.is_inventory_staff = True
-        # Mặc định là khách hàng (không có vai trò đặc biệt)
+        role = request.POST.get('role', 'CUSTOMER')
+        if role in dict(User.ROLE_CHOICES).keys():
+            user.role = role
         
         user.save()
         

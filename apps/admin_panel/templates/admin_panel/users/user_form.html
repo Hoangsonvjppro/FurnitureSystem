@@ -91,35 +91,13 @@
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle"></i> Người dùng chỉ có thể có một vai trò duy nhất.
                             </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="is_superuser" name="is_superuser" {% if user_obj.is_superuser %}checked{% endif %}>
-                                <label class="form-check-label" for="is_superuser">Quản trị viên</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="is_staff" name="is_staff" {% if user_obj.is_staff %}checked{% endif %}>
-                                <label class="form-check-label" for="is_staff">Nhân viên hệ thống</label>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Phân quyền chức năng</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="role" id="role_none" value="" {% if not user_obj.is_branch_manager and not user_obj.is_sales_staff and not user_obj.is_inventory_staff %}checked{% endif %}>
-                                <label class="form-check-label" for="role_none">
-                                    Khách hàng (không có vai trò đặc biệt)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="role" id="role_branch_manager" value="branch_manager" {% if user_obj.is_branch_manager %}checked{% endif %}>
-                                <label class="form-check-label" for="role_branch_manager">Quản lý chi nhánh</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="role" id="role_sales_staff" value="sales_staff" {% if user_obj.is_sales_staff %}checked{% endif %}>
-                                <label class="form-check-label" for="role_sales_staff">Nhân viên bán hàng</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="role" id="role_inventory_staff" value="inventory_staff" {% if user_obj.is_inventory_staff %}checked{% endif %}>
-                                <label class="form-check-label" for="role_inventory_staff">Nhân viên kho</label>
+                            <div class="form-group">
+                                {% for value, label in role_choices %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="role_{{ value }}" value="{{ value }}" {% if user_obj.role == value %}checked{% endif %}>
+                                    <label class="form-check-label" for="role_{{ value }}">{{ label }}</label>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                         

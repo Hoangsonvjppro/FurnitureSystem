@@ -74,18 +74,16 @@
                             </td>
                             <td>{{ user.email }}</td>
                             <td>
-                                {% if user.is_superuser %}
-                                <span class="badge bg-danger">Quản trị viên</span>
-                                {% elif user.is_branch_manager %}
-                                <span class="badge bg-info">Quản lý chi nhánh</span>
-                                {% elif user.is_sales_staff %}
-                                <span class="badge bg-primary">Nhân viên bán hàng</span>
-                                {% elif user.is_inventory_staff %}
+                                {% if user.role == 'ADMIN' %}
+                                <span class="badge bg-primary">Admin</span>
+                                {% elif user.role == 'MANAGER' %}
+                                <span class="badge bg-success">Quản lý chi nhánh</span>
+                                {% elif user.role == 'SALES_STAFF' %}
+                                <span class="badge bg-info">Nhân viên bán hàng</span>
+                                {% elif user.role == 'INVENTORY_STAFF' %}
                                 <span class="badge bg-warning">Nhân viên kho</span>
-                                {% elif user.is_staff %}
-                                <span class="badge bg-secondary">Nhân viên hệ thống</span>
                                 {% else %}
-                                <span class="badge bg-success">Khách hàng</span>
+                                <span class="badge bg-secondary">Khách hàng</span>
                                 {% endif %}
                             </td>
                             <td>

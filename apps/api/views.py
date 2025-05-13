@@ -127,5 +127,5 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['is_branch_manager', 'is_sales_staff', 'is_inventory_staff', 'branch']
+    filterset_fields = ['role', 'branch']
     search_fields = ['username', 'email', 'first_name', 'last_name', 'phone_number'] 

@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 from .models import StaffProfile, StaffSchedule, Performance
 from .forms import StaffProfileForm, StaffScheduleForm, PerformanceForm
@@ -128,11 +129,12 @@ def sales_order_list(request):
 @login_required
 @sales_staff_required
 def sales_order_detail(request, order_id):
-    """View to display order details for sales staff"""
-    order = get_object_or_404(Order, id=order_id, processed_by=request.user)
+    """View để hiển thị chi tiết đơn hàng và cho phép cập nhật trạng thái"""
+    order = get_object_or_404(Order, id=order_id)
     
     context = {
         'order': order,
+        'status_choices': Order.STATUS_CHOICES,
     }
     
     return render(request, 'staff/sales_order_detail.html', context)
@@ -141,36 +143,41 @@ def sales_order_detail(request, order_id):
 @login_required
 @sales_staff_required
 def sales_order_create(request):
-    """View to create a new order by sales staff"""
-    # Implementation will depend on your Order model and form
-    if request.method == 'POST':
-        # Process form submission
-        # Save order with the current staff member as processed_by
-        pass
-    
-    context = {
-        # Add form and other context data
-    }
-    
-    return render(request, 'staff/sales_order_form.html', context)
+    """View đã bị vô hiệu hóa - Đơn hàng chỉ được tạo bởi khách hàng"""
+    messages.error(request, "Không thể tạo đơn hàng mới. Đơn hàng chỉ được tạo bởi khách hàng khi thanh toán giỏ hàng.")
+    return redirect('staff:sales_orders')
 
 
 @login_required
 @sales_staff_required
 def sales_order_update(request, order_id):
-    """View to update an existing order by sales staff"""
-    order = get_object_or_404(Order, id=order_id, processed_by=request.user)
+    """View cho phép nhân viên bán hàng cập nhật trạng thái đơn hàng"""
+    order = get_object_or_404(Order, id=order_id)
     
     if request.method == 'POST':
-        # Process form submission
-        # Update order
-        pass
+        new_status = request.POST.get('status')
+        if new_status and new_status in dict(Order.STATUS_CHOICES):
+            old_status = order.status
+            order.status = new_status
+            
+            # Cập nhật thời gian theo trạng thái
+            if new_status == 'CONFIRMED' and not order.confirmed_at:
+                order.confirmed_at = timezone.now()
+            elif new_status == 'SHIPPING' and not order.shipped_at:
+                order.shipped_at = timezone.now()
+            elif new_status == 'DELIVERED' and not order.delivered_at:
+                order.delivered_at = timezone.now()
+            elif new_status == 'CANCELLED' and not order.cancelled_at:
+                order.cancelled_at = timezone.now()
+            
+            order.processed_by = request.user
+            order.save()
+            
+            messages.success(request, f'Trạng thái đơn hàng đã được cập nhật từ {dict(Order.STATUS_CHOICES)[old_status]} sang {dict(Order.STATUS_CHOICES)[new_status]}.')
+        else:
+            messages.error(request, 'Trạng thái không hợp lệ.')
     
-    context = {
-        'order': order,
-    }
-    
-    return render(request, 'staff/sales_order_form.html', context)
+    return redirect('staff:sales_order_detail', order_id=order.id)
 
 
 @login_required
