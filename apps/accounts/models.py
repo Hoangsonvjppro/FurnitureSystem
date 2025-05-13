@@ -71,6 +71,18 @@ class User(AbstractUser):
             return _("Nhân viên hệ thống")
         return _("Khách hàng")
     
+    @property
+    def debug_roles(self):
+        """Hiển thị thông tin về các role của user để debug"""
+        return {
+            'username': self.username,
+            'is_superuser': self.is_superuser,
+            'is_staff': self.is_staff,
+            'is_branch_manager': self.is_branch_manager,
+            'is_sales_staff': self.is_sales_staff,
+            'is_inventory_staff': self.is_inventory_staff,
+        }
+    
     def get_dashboard_url(self):
         """Trả về URL dashboard tương ứng với vai trò của user"""
         if self.is_superuser or self.is_staff:

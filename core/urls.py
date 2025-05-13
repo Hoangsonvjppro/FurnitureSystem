@@ -8,10 +8,23 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView, TemplateView
 from django.contrib.auth import views as auth_views
 from django.db import OperationalError
+from django.http import JsonResponse
 
 # Fix admin login issues
 admin.autodiscover()
 admin.site.login = auth_views.LoginView.as_view(template_name='account/admin_login.html')
+
+# Debug view to check user roles
+def debug_user_roles(request):
+    if request.user.is_authenticated:
+        return JsonResponse({
+            'user': request.user.username,
+            'roles': request.user.debug_roles,
+            'is_authenticated': True
+        })
+    return JsonResponse({
+        'is_authenticated': False
+    })
 
 urlpatterns = [
     # Admin dashboard (Django default admin)
@@ -46,6 +59,9 @@ urlpatterns = [
     
     # Debug toolbar
     path('__debug__/', include('debug_toolbar.urls')),
+    
+    # New debug URL
+    path('debug-user-roles/', debug_user_roles, name='debug_user_roles'),
 ]
 
 # Debug toolbar
